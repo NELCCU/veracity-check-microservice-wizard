@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { phoneService } from '@/services/phoneService';
 import { emailService } from '@/services/emailService';
 import { websiteService } from '@/services/websiteService';
-import { verificationStorage } from '@/services/verificationStorage';
 import { PhoneVerificationResult, EmailVerificationResult, WebsiteVerificationResult } from '@/types/verification';
 
 export const useVerification = () => {
@@ -16,8 +15,6 @@ export const useVerification = () => {
     
     try {
       const result = await phoneService.verifyPhone(phone);
-      // Guardar en Supabase
-      await verificationStorage.savePhoneVerification(phone, result);
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -34,8 +31,6 @@ export const useVerification = () => {
     
     try {
       const result = await emailService.verifyEmail(email);
-      // Guardar en Supabase
-      await verificationStorage.saveEmailVerification(email, result);
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -52,8 +47,6 @@ export const useVerification = () => {
     
     try {
       const result = await websiteService.verifyWebsite(url);
-      // Guardar en Supabase
-      await verificationStorage.saveWebsiteVerification(url, result);
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
