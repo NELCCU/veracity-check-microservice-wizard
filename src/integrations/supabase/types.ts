@@ -9,7 +9,159 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      email_verifications: {
+        Row: {
+          created_at: string
+          domain: string | null
+          email: string
+          id: string
+          is_deliverable: boolean | null
+          is_disposable: boolean | null
+          mx_records: boolean | null
+          smtp_check: boolean | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain?: string | null
+          email: string
+          id?: string
+          is_deliverable?: boolean | null
+          is_disposable?: boolean | null
+          mx_records?: boolean | null
+          smtp_check?: boolean | null
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain?: string | null
+          email?: string
+          id?: string
+          is_deliverable?: boolean | null
+          is_disposable?: boolean | null
+          mx_records?: boolean | null
+          smtp_check?: boolean | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      phone_verifications: {
+        Row: {
+          carrier: string | null
+          country: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          line_type: string | null
+          phone_number: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          carrier?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          line_type?: string | null
+          phone_number: string
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          carrier?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          line_type?: string | null
+          phone_number?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          daily_verification_limit: number | null
+          email_api_provider: string | null
+          id: string
+          phone_api_provider: string | null
+          updated_at: string
+          user_id: string | null
+          website_api_provider: string | null
+        }
+        Insert: {
+          created_at?: string
+          daily_verification_limit?: number | null
+          email_api_provider?: string | null
+          id?: string
+          phone_api_provider?: string | null
+          updated_at?: string
+          user_id?: string | null
+          website_api_provider?: string | null
+        }
+        Update: {
+          created_at?: string
+          daily_verification_limit?: number | null
+          email_api_provider?: string | null
+          id?: string
+          phone_api_provider?: string | null
+          updated_at?: string
+          user_id?: string | null
+          website_api_provider?: string | null
+        }
+        Relationships: []
+      }
+      website_verifications: {
+        Row: {
+          category: string | null
+          created_at: string
+          http_status: number | null
+          id: string
+          is_duplicate: boolean | null
+          monthly_visits: number | null
+          ranking: number | null
+          response_time: number | null
+          ssl_enabled: boolean | null
+          status: string
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          http_status?: number | null
+          id?: string
+          is_duplicate?: boolean | null
+          monthly_visits?: number | null
+          ranking?: number | null
+          response_time?: number | null
+          ssl_enabled?: boolean | null
+          status: string
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          http_status?: number | null
+          id?: string
+          is_duplicate?: boolean | null
+          monthly_visits?: number | null
+          ranking?: number | null
+          response_time?: number | null
+          ssl_enabled?: boolean | null
+          status?: string
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

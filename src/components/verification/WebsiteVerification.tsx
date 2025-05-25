@@ -11,7 +11,11 @@ import { WebsiteVerificationResult } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
 import { useVerification } from "@/hooks/useVerification";
 
-export const WebsiteVerification = () => {
+interface WebsiteVerificationProps {
+  onVerificationComplete?: () => void;
+}
+
+export const WebsiteVerification = ({ onVerificationComplete }: WebsiteVerificationProps) => {
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<WebsiteVerificationResult | null>(null);
   const [validationError, setValidationError] = useState("");
@@ -33,6 +37,7 @@ export const WebsiteVerification = () => {
     
     if (verificationResult) {
       setResult(verificationResult);
+      onVerificationComplete?.();
       toast({
         title: "Verificación completada",
         description: `Sitio web ${verificationResult.status === 'valid' ? 'válido' : 'inválido'}`,

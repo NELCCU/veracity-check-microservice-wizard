@@ -11,7 +11,11 @@ import { PhoneVerificationResult } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
 import { useVerification } from "@/hooks/useVerification";
 
-export const PhoneVerification = () => {
+interface PhoneVerificationProps {
+  onVerificationComplete?: () => void;
+}
+
+export const PhoneVerification = ({ onVerificationComplete }: PhoneVerificationProps) => {
   const [phone, setPhone] = useState("");
   const [result, setResult] = useState<PhoneVerificationResult | null>(null);
   const [validationError, setValidationError] = useState("");
@@ -33,6 +37,7 @@ export const PhoneVerification = () => {
     
     if (verificationResult) {
       setResult(verificationResult);
+      onVerificationComplete?.();
       toast({
         title: "Verificación completada",
         description: `Número ${verificationResult.status === 'valid' ? 'válido' : 'inválido'}`,

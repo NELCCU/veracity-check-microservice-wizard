@@ -11,7 +11,11 @@ import { EmailVerificationResult } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
 import { useVerification } from "@/hooks/useVerification";
 
-export const EmailVerification = () => {
+interface EmailVerificationProps {
+  onVerificationComplete?: () => void;
+}
+
+export const EmailVerification = ({ onVerificationComplete }: EmailVerificationProps) => {
   const [email, setEmail] = useState("");
   const [result, setResult] = useState<EmailVerificationResult | null>(null);
   const [validationError, setValidationError] = useState("");
@@ -33,6 +37,7 @@ export const EmailVerification = () => {
     
     if (verificationResult) {
       setResult(verificationResult);
+      onVerificationComplete?.();
       toast({
         title: "Verificación completada",
         description: `Email ${verificationResult.status === 'valid' ? 'válido' : 'inválido'}`,
