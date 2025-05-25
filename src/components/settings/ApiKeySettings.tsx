@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Switch } from "@/components/ui/switch";
-import { Key, Save, AlertCircle, CheckCircle, Settings, Eye, EyeOff } from "lucide-react";
+import { Key, Save, AlertCircle, CheckCircle, Settings, Eye, EyeOff, Trash2 } from "lucide-react";
 import { useApiSettings } from "@/hooks/useApiSettings";
+import { useApiKeys } from "@/hooks/useApiKeys";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ApiStatusIndicator } from "./ApiStatusIndicator";
 
 interface ApiKeyConfig {
   name: string;
@@ -21,47 +22,65 @@ interface ApiKeyConfig {
 
 export const ApiKeySettings = () => {
   const { settings, isLoading, isSaving, saveSettings } = useApiSettings();
+  const { apiKeys, saveApiKey, deleteApiKey, isSaving: isSavingKeys } = useApiKeys();
   const [localSettings, setLocalSettings] = useState(settings);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    providers: true,
+    apiKeys: true,
+    status: true
+  });
   
-  // Estado para las claves API
-  const [apiKeys, setApiKeys] = useState<Record<string, ApiKeyConfig>>({
+  // Estado para las claves API con valores desde la base de datos
+  const [apiKeyConfigs, setApiKeyConfigs] = useState<Record<string, ApiKeyConfig>>({
     numverify: {
       name: "NumVerify API Key",
       description: "Clave para verificación de números de teléfono",
       required: true,
-      value: "",
+      value: apiKeys.numverify?.api_key || "",
       isVisible: false
     },
     zerobounce: {
       name: "ZeroBounce API Key", 
       description: "Clave para verificación de correos electrónicos",
       required: true,
-      value: "",
+      value: apiKeys.zerobounce?.api_key || "",
       isVisible: false
     },
     similarweb: {
       name: "SimilarWeb API Key",
       description: "Clave para análisis de sitios web",
       required: true,
-      value: "",
+      value: apiKeys.similarweb?.api_key || "",
       isVisible: false
     },
     twilio: {
       name: "Twilio API Key",
       description: "Clave alternativa para verificación de teléfonos",
       required: false,
-      value: "",
+      value: apiKeys.twilio?.api_key || "",
       isVisible: false
     },
     hunter: {
       name: "Hunter API Key",
       description: "Clave alternativa para verificación de emails",
       required: false,
-      value: "",
+      value: apiKeys.hunter?.api_key || "",
       isVisible: false
     }
   });
+
+  // Actualizar configuraciones cuando cambien las claves de la BD
+  useState(() => {
+    setApiKeyConfigs(prev => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach(key => {
+        if (apiKeys[key]) {
+          updated[key].value = apiKeys[key].api_key;
+        }
+      });
+      return updated;
+    });
+  }, [apiKeys]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -71,7 +90,7 @@ export const ApiKeySettings = () => {
   };
 
   const toggleApiKeyVisibility = (keyName: string) => {
-    setApiKeys(prev => ({
+    setApiKeyConfigs(prev => ({
       ...prev,
       [keyName]: {
         ...prev[keyName],
@@ -81,7 +100,7 @@ export const ApiKeySettings = () => {
   };
 
   const updateApiKey = (keyName: string, value: string) => {
-    setApiKeys(prev => ({
+    setApiKeyConfigs(prev => ({
       ...prev,
       [keyName]: {
         ...prev[keyName],
@@ -90,7 +109,25 @@ export const ApiKeySettings = () => {
     }));
   };
 
-  const handleSave = async () => {
+  const handleSaveApiKey = async (keyName: string) => {
+    const config = apiKeyConfigs[keyName];
+    if (config.value.trim()) {
+      await saveApiKey(keyName, config.value.trim());
+    }
+  };
+
+  const handleDeleteApiKey = async (keyName: string) => {
+    await deleteApiKey(keyName);
+    setApiKeyConfigs(prev => ({
+      ...prev,
+      [keyName]: {
+        ...prev[keyName],
+        value: ""
+      }
+    }));
+  };
+
+  const handleSaveSettings = async () => {
     if (!localSettings) return;
     await saveSettings(localSettings);
   };
@@ -110,6 +147,27 @@ export const ApiKeySettings = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
+      {/* Estado de APIs */}
+      <Collapsible 
+        open={expandedSections.status} 
+        onOpenChange={() => toggleSection('status')}
+      >
+        <CollapsibleTrigger asChild>
+          <Button variant="outline" className="w-full justify-between">
+            <span className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              Estado de Servicios
+            </span>
+            <span className="text-sm text-gray-500">
+              {expandedSections.status ? 'Contraer' : 'Expandir'}
+            </span>
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <ApiStatusIndicator />
+        </CollapsibleContent>
+      </Collapsible>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -199,6 +257,21 @@ export const ApiKeySettings = () => {
                   />
                 </div>
               </div>
+
+              <div className="flex justify-end">
+                <Button 
+                  onClick={handleSaveSettings} 
+                  disabled={isSaving}
+                  className="min-w-[120px]"
+                >
+                  {isSaving ? (
+                    <Settings className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  {isSaving ? 'Guardando...' : 'Guardar Configuración'}
+                </Button>
+              </div>
             </CollapsibleContent>
           </Collapsible>
 
@@ -219,7 +292,7 @@ export const ApiKeySettings = () => {
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 mt-4">
-              {Object.entries(apiKeys).map(([keyName, config]) => (
+              {Object.entries(apiKeyConfigs).map(([keyName, config]) => (
                 <Card key={keyName} className="p-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -233,10 +306,10 @@ export const ApiKeySettings = () => {
                         <p className="text-sm text-gray-600">{config.description}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {config.value && (
+                        {apiKeys[keyName] && (
                           <CheckCircle className="h-4 w-4 text-green-500" />
                         )}
-                        {config.required && !config.value && (
+                        {config.required && !apiKeys[keyName] && (
                           <AlertCircle className="h-4 w-4 text-red-500" />
                         )}
                       </div>
@@ -261,6 +334,22 @@ export const ApiKeySettings = () => {
                           <Eye className="h-4 w-4" />
                         }
                       </Button>
+                      <Button
+                        onClick={() => handleSaveApiKey(keyName)}
+                        disabled={!config.value.trim() || isSavingKeys}
+                        size="sm"
+                      >
+                        <Save className="h-4 w-4" />
+                      </Button>
+                      {apiKeys[keyName] && (
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => handleDeleteApiKey(keyName)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -274,22 +363,6 @@ export const ApiKeySettings = () => {
               </Alert>
             </CollapsibleContent>
           </Collapsible>
-
-          {/* Botón de Guardado */}
-          <div className="flex justify-end">
-            <Button 
-              onClick={handleSave} 
-              disabled={isSaving}
-              className="min-w-[120px]"
-            >
-              {isSaving ? (
-                <Settings className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              {isSaving ? 'Guardando...' : 'Guardar Cambios'}
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>

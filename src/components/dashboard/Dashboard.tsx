@@ -1,65 +1,31 @@
 
-import { useState, useEffect } from "react";
 import { DashboardStats } from "./DashboardStats";
 import { DashboardTabs } from "./DashboardTabs";
-import { verificationStorage } from "@/services/verificationStorage";
-import { dashboardService } from "@/services/dashboardService";
+import { ApiStatusIndicator } from "@/components/settings/ApiStatusIndicator";
 
 export const Dashboard = () => {
-  const [stats, setStats] = useState({
-    today: { phones: 0, emails: 0, websites: 0, total: 0 }
-  });
-  const [recentVerifications, setRecentVerifications] = useState({
-    phones: [],
-    emails: [],
-    websites: []
-  });
-  const [advancedStats, setAdvancedStats] = useState(null);
-  const [loadingAdvanced, setLoadingAdvanced] = useState(false);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
-    const [statsData, recentData] = await Promise.all([
-      verificationStorage.getVerificationStats(),
-      verificationStorage.getRecentVerifications(5)
-    ]);
-    
-    setStats(statsData);
-    setRecentVerifications(recentData);
-  };
-
-  const loadAdvancedStats = async () => {
-    setLoadingAdvanced(true);
-    try {
-      const data = await dashboardService.getAdvancedStats();
-      setAdvancedStats(data);
-    } catch (error) {
-      console.error('Error cargando estadísticas avanzadas:', error);
-    } finally {
-      setLoadingAdvanced(false);
-    }
-  };
-
-  const refreshStats = () => {
-    loadDashboardData();
-    if (advancedStats) {
-      loadAdvancedStats();
-    }
-  };
-
   return (
     <div className="space-y-6">
-      <DashboardStats stats={stats} />
-      <DashboardTabs 
-        recentVerifications={recentVerifications}
-        advancedStats={advancedStats}
-        loadingAdvanced={loadingAdvanced}
-        onRefreshStats={refreshStats}
-        onLoadAdvancedStats={loadAdvancedStats}
-      />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">
+            Gestiona y monitorea tus verificaciones de datos
+          </p>
+        </div>
+      </div>
+
+      {/* Indicador de estado de APIs */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <DashboardStats />
+        </div>
+        <div>
+          <ApiStatusIndicator />
+        </div>
+      </div>
+
+      <DashboardTabs />
     </div>
   );
 };
