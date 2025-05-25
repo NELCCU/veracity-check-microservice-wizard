@@ -1,16 +1,13 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Key, Save, AlertCircle, CheckCircle, Settings, Eye, EyeOff, Trash2 } from "lucide-react";
+import { Key, Settings, CheckCircle } from "lucide-react";
 import { useApiSettings } from "@/hooks/useApiSettings";
 import { useApiKeys } from "@/hooks/useApiKeys";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ApiStatusIndicator } from "./ApiStatusIndicator";
+import { CollapsibleSection } from "./CollapsibleSection";
+import { ProviderSettings } from "./ProviderSettings";
+import { ApiKeysSection } from "./ApiKeysSection";
 
 interface ApiKeyConfig {
   name: string;
@@ -22,7 +19,7 @@ interface ApiKeyConfig {
 
 export const ApiKeySettings = () => {
   const { settings, isLoading, isSaving, saveSettings } = useApiSettings();
-  const { apiKeys, saveApiKey, deleteApiKey, isSaving: isSavingKeys } = useApiKeys();
+  const { apiKeys, saveApiKey, deleteApiKey } = useApiKeys();
   const [localSettings, setLocalSettings] = useState(settings);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     providers: true,
@@ -30,7 +27,6 @@ export const ApiKeySettings = () => {
     status: true
   });
   
-  // Estado para las claves API con valores desde la base de datos
   const [apiKeyConfigs, setApiKeyConfigs] = useState<Record<string, ApiKeyConfig>>({
     numverify: {
       name: "NumVerify API Key",
@@ -69,8 +65,11 @@ export const ApiKeySettings = () => {
     }
   });
 
-  // Actualizar configuraciones cuando cambien las claves de la BD
-  useState(() => {
+  useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
     setApiKeyConfigs(prev => {
       const updated = { ...prev };
       Object.keys(updated).forEach(key => {
@@ -147,26 +146,14 @@ export const ApiKeySettings = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
-      {/* Estado de APIs */}
-      <Collapsible 
-        open={expandedSections.status} 
-        onOpenChange={() => toggleSection('status')}
+      <CollapsibleSection
+        title="Estado de Servicios"
+        icon={<CheckCircle className="h-4 w-4" />}
+        isOpen={expandedSections.status}
+        onToggle={() => toggleSection('status')}
       >
-        <CollapsibleTrigger asChild>
-          <Button variant="outline" className="w-full justify-between">
-            <span className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4" />
-              Estado de Servicios
-            </span>
-            <span className="text-sm text-gray-500">
-              {expandedSections.status ? 'Contraer' : 'Expandir'}
-            </span>
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-4">
-          <ApiStatusIndicator />
-        </CollapsibleContent>
-      </Collapsible>
+        <ApiStatusIndicator />
+      </CollapsibleSection>
 
       <Card>
         <CardHeader>
@@ -180,189 +167,34 @@ export const ApiKeySettings = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           
-          {/* Configuración de Proveedores */}
-          <Collapsible 
-            open={expandedSections.providers} 
-            onOpenChange={() => toggleSection('providers')}
+          <CollapsibleSection
+            title="Proveedores de API"
+            icon={<Settings className="h-4 w-4" />}
+            isOpen={expandedSections.providers}
+            onToggle={() => toggleSection('providers')}
           >
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
-                <span className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Proveedores de API
-                </span>
-                <span className="text-sm text-gray-500">
-                  {expandedSections.providers ? 'Contraer' : 'Expandir'}
-                </span>
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-4 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Proveedor de Verificación de Teléfonos</Label>
-                  <Select 
-                    value={localSettings?.phoneApiProvider} 
-                    onValueChange={(value) => setLocalSettings(prev => prev ? {...prev, phoneApiProvider: value as any} : null)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="numverify">NumVerify</SelectItem>
-                      <SelectItem value="twilio">Twilio</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <ProviderSettings
+              settings={localSettings}
+              isSaving={isSaving}
+              onSettingsChange={setLocalSettings}
+              onSave={handleSaveSettings}
+            />
+          </CollapsibleSection>
 
-                <div className="space-y-2">
-                  <Label>Proveedor de Verificación de Emails</Label>
-                  <Select 
-                    value={localSettings?.emailApiProvider} 
-                    onValueChange={(value) => setLocalSettings(prev => prev ? {...prev, emailApiProvider: value as any} : null)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="zerobounce">ZeroBounce</SelectItem>
-                      <SelectItem value="hunter">Hunter</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Proveedor de Análisis Web</Label>
-                  <Select 
-                    value={localSettings?.websiteApiProvider} 
-                    onValueChange={(value) => setLocalSettings(prev => prev ? {...prev, websiteApiProvider: value as any} : null)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="similar_web">SimilarWeb</SelectItem>
-                      <SelectItem value="builtwith">BuiltWith</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Límite Diario de Verificaciones</Label>
-                  <Input
-                    type="number"
-                    value={localSettings?.dailyVerificationLimit || 100}
-                    onChange={(e) => setLocalSettings(prev => prev ? {...prev, dailyVerificationLimit: parseInt(e.target.value)} : null)}
-                    min="1"
-                    max="10000"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button 
-                  onClick={handleSaveSettings} 
-                  disabled={isSaving}
-                  className="min-w-[120px]"
-                >
-                  {isSaving ? (
-                    <Settings className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="mr-2 h-4 w-4" />
-                  )}
-                  {isSaving ? 'Guardando...' : 'Guardar Configuración'}
-                </Button>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-
-          {/* Configuración de Claves API */}
-          <Collapsible 
-            open={expandedSections.apiKeys} 
-            onOpenChange={() => toggleSection('apiKeys')}
+          <CollapsibleSection
+            title="Claves API"
+            icon={<Key className="h-4 w-4" />}
+            isOpen={expandedSections.apiKeys}
+            onToggle={() => toggleSection('apiKeys')}
           >
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
-                <span className="flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  Claves API
-                </span>
-                <span className="text-sm text-gray-500">
-                  {expandedSections.apiKeys ? 'Contraer' : 'Expandir'}
-                </span>
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-4 mt-4">
-              {Object.entries(apiKeyConfigs).map(([keyName, config]) => (
-                <Card key={keyName} className="p-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium flex items-center gap-2">
-                          {config.name}
-                          {config.required && (
-                            <span className="text-red-500 text-sm">*</span>
-                          )}
-                        </h4>
-                        <p className="text-sm text-gray-600">{config.description}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {apiKeys[keyName] && (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        )}
-                        {config.required && !apiKeys[keyName] && (
-                          <AlertCircle className="h-4 w-4 text-red-500" />
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <Input
-                          type={config.isVisible ? "text" : "password"}
-                          placeholder={`Ingresa tu ${config.name}`}
-                          value={config.value}
-                          onChange={(e) => updateApiKey(keyName, e.target.value)}
-                        />
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => toggleApiKeyVisibility(keyName)}
-                      >
-                        {config.isVisible ? 
-                          <EyeOff className="h-4 w-4" /> : 
-                          <Eye className="h-4 w-4" />
-                        }
-                      </Button>
-                      <Button
-                        onClick={() => handleSaveApiKey(keyName)}
-                        disabled={!config.value.trim() || isSavingKeys}
-                        size="sm"
-                      >
-                        <Save className="h-4 w-4" />
-                      </Button>
-                      {apiKeys[keyName] && (
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => handleDeleteApiKey(keyName)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-              
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Las claves API se almacenan de forma segura y encriptada. Solo tú tienes acceso a ellas.
-                </AlertDescription>
-              </Alert>
-            </CollapsibleContent>
-          </Collapsible>
+            <ApiKeysSection
+              apiKeyConfigs={apiKeyConfigs}
+              onToggleVisibility={toggleApiKeyVisibility}
+              onUpdateValue={updateApiKey}
+              onSave={handleSaveApiKey}
+              onDelete={handleDeleteApiKey}
+            />
+          </CollapsibleSection>
         </CardContent>
       </Card>
     </div>

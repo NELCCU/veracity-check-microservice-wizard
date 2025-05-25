@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export interface ApiKeyData {
@@ -20,22 +19,11 @@ export const useApiKeys = () => {
 
   const loadApiKeys = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('api_keys')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      const keysMap: Record<string, ApiKeyData> = {};
-      data?.forEach(key => {
-        keysMap[key.service_name] = key;
-      });
-
-      setApiKeys(keysMap);
+      const storedKeys = localStorage.getItem('api_keys');
+      if (storedKeys) {
+        const parsedKeys = JSON.parse(storedKeys);
+        setApiKeys(parsedKeys);
+      }
     } catch (error) {
       console.error('Error loading API keys:', error);
       toast({
@@ -51,47 +39,22 @@ export const useApiKeys = () => {
   const saveApiKey = async (serviceName: string, apiKey: string, isActive: boolean = true) => {
     setIsSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuario no autenticado');
+      const newKey: ApiKeyData = {
+        id: Date.now().toString(),
+        service_name: serviceName,
+        api_key: apiKey,
+        is_active: isActive,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
 
-      const existingKey = apiKeys[serviceName];
+      const updatedKeys = {
+        ...apiKeys,
+        [serviceName]: newKey
+      };
 
-      if (existingKey) {
-        // Actualizar clave existente
-        const { error } = await supabase
-          .from('api_keys')
-          .update({
-            api_key: apiKey,
-            is_active: isActive,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingKey.id);
-
-        if (error) throw error;
-      } else {
-        // Crear nueva clave
-        const { error } = await supabase
-          .from('api_keys')
-          .insert({
-            user_id: user.id,
-            service_name: serviceName,
-            api_key: apiKey,
-            is_active: isActive
-          });
-
-        if (error) throw error;
-      }
-
-      // Actualizar estado local
-      setApiKeys(prev => ({
-        ...prev,
-        [serviceName]: {
-          ...prev[serviceName],
-          service_name: serviceName,
-          api_key: apiKey,
-          is_active: isActive
-        }
-      }));
+      setApiKeys(updatedKeys);
+      localStorage.setItem('api_keys', JSON.stringify(updatedKeys));
 
       toast({
         title: "Clave API guardada",
@@ -111,21 +74,11 @@ export const useApiKeys = () => {
 
   const deleteApiKey = async (serviceName: string) => {
     try {
-      const existingKey = apiKeys[serviceName];
-      if (!existingKey?.id) return;
-
-      const { error } = await supabase
-        .from('api_keys')
-        .delete()
-        .eq('id', existingKey.id);
-
-      if (error) throw error;
-
-      setApiKeys(prev => {
-        const newKeys = { ...prev };
-        delete newKeys[serviceName];
-        return newKeys;
-      });
+      const updatedKeys = { ...apiKeys };
+      delete updatedKeys[serviceName];
+      
+      setApiKeys(updatedKeys);
+      localStorage.setItem('api_keys', JSON.stringify(updatedKeys));
 
       toast({
         title: "Clave API eliminada",
