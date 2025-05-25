@@ -15,7 +15,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const AppContent = () => {
+const ProtectedContent = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -35,15 +35,13 @@ const AppContent = () => {
       <Header user={user} />
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/api-docs" element={<ApiDocs />} />
-              <Route path="/legacy" element={<Index />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/api-docs" element={<ApiDocs />} />
+            <Route path="/legacy" element={<Index />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </div>
       </main>
     </div>
@@ -53,9 +51,11 @@ const AppContent = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AppContent />
+      <BrowserRouter>
+        <Toaster />
+        <Sonner />
+        <ProtectedContent />
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
