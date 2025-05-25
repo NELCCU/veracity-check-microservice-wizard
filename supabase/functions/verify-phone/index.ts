@@ -21,22 +21,74 @@ serve(async (req) => {
 
     const apiKey = Deno.env.get('NUMVERIFY_API_KEY')
     if (!apiKey) {
-      throw new Error('API key de NumVerify no configurada')
+      console.error('CRITICAL: NumVerify API key not configured')
+      throw new Error('API key de NumVerify no configurada - Contacta al administrador')
     }
 
     console.log(`Verificando teléfono con NumVerify: ${phone}`)
 
-    // Call NumVerify API
-    const response = await fetch(
-      `http://apilayer.net/api/validate?access_key=${apiKey}&number=${phone}&country_code=&format=1`
-    )
+    // Call NumVerify API with timeout and error handling
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 segundos
+
+    let response
+    try {
+      response = await fetch(
+        `http://apilayer.net/api/validate?access_key=${apiKey}&number=${phone}&country_code=&format=1`,
+        {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Veracity-Check/1.0'
+          }
+        }
+      )
+      clearTimeout(timeoutId)
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      console.error('NumVerify API request failed:', fetchError)
+      
+      if (fetchError.name === 'AbortError') {
+        throw new Error('TIMEOUT: NumVerify API no responde - Inténtalo más tarde')
+      }
+      
+      throw new Error('NETWORK_ERROR: Error de conexión con NumVerify')
+    }
 
     if (!response.ok) {
-      throw new Error('Error al llamar a la API de NumVerify')
+      console.error(`NumVerify API returned ${response.status}: ${response.statusText}`)
+      
+      if (response.status === 429) {
+        throw new Error('QUOTA_EXCEEDED: Límite de solicitudes de NumVerify excedido')
+      }
+      
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('AUTH_ERROR: Credenciales de NumVerify inválidas')
+      }
+      
+      if (response.status >= 500) {
+        throw new Error('API_UNAVAILABLE: NumVerify temporalmente no disponible')
+      }
+      
+      throw new Error(`NumVerify API error: ${response.status}`)
     }
 
     const data = await response.json()
     console.log('Respuesta de NumVerify:', data)
+
+    // Check for API-specific errors
+    if (data.error) {
+      console.error('NumVerify returned error:', data.error)
+      
+      if (data.error.code === 104) {
+        throw new Error('QUOTA_EXCEEDED: Plan mensual de NumVerify agotado')
+      }
+      
+      if (data.error.code === 101) {
+        throw new Error('AUTH_ERROR: API key de NumVerify inválida')
+      }
+      
+      throw new Error(`NumVerify error: ${data.error.info || 'Error desconocido'}`)
+    }
 
     // Transform NumVerify response to our format
     const result = {
@@ -63,7 +115,7 @@ serve(async (req) => {
       const { data: { user } } = await supabase.auth.getUser(token)
       
       if (user) {
-        await supabase.from('phone_verifications').insert({
+        const { error: dbError } = await supabase.from('phone_verifications').insert({
           user_id: user.id,
           phone_number: phone,
           status: result.status,
@@ -72,6 +124,11 @@ serve(async (req) => {
           line_type: result.details.lineType,
           is_active: result.details.isActive
         })
+        
+        if (dbError) {
+          console.error('Database save error:', dbError)
+          // No lanzar error aquí, la verificación fue exitosa
+        }
       }
     }
 
@@ -81,8 +138,21 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error en verify-phone:', error)
+    
+    // Estructura de error consistente
+    const errorResponse = {
+      error: error.message,
+      type: error.message.includes('QUOTA_EXCEEDED') ? 'quota_exceeded' :
+            error.message.includes('AUTH_ERROR') ? 'authentication' :
+            error.message.includes('NETWORK_ERROR') ? 'network' :
+            error.message.includes('TIMEOUT') ? 'network' :
+            error.message.includes('API_UNAVAILABLE') ? 'api_unavailable' : 'unknown',
+      timestamp: new Date().toISOString(),
+      service: 'numverify'
+    }
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify(errorResponse),
       {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

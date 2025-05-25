@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Phone, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Phone, CheckCircle, XCircle, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 import { validatePhone, formatPhone } from "@/utils/validators";
 import { PhoneVerificationResult } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
@@ -19,8 +19,9 @@ export const PhoneVerification = ({ onVerificationComplete }: PhoneVerificationP
   const [phone, setPhone] = useState("");
   const [result, setResult] = useState<PhoneVerificationResult | null>(null);
   const [validationError, setValidationError] = useState("");
+  const [lastAttemptedPhone, setLastAttemptedPhone] = useState("");
   const { toast } = useToast();
-  const { verifyPhone, isLoading, error } = useVerification();
+  const { verifyPhone, retryLastOperation, isLoading, error, lastError, canRetry } = useVerification();
 
   const handleVerify = async () => {
     const formattedPhone = formatPhone(phone);
@@ -32,6 +33,7 @@ export const PhoneVerification = ({ onVerificationComplete }: PhoneVerificationP
     }
 
     setValidationError("");
+    setLastAttemptedPhone(formattedPhone);
     
     const verificationResult = await verifyPhone(formattedPhone);
     
@@ -42,6 +44,23 @@ export const PhoneVerification = ({ onVerificationComplete }: PhoneVerificationP
         title: "Verificación completada",
         description: `Número ${verificationResult.status === 'valid' ? 'válido' : 'inválido'}`,
       });
+    }
+  };
+
+  const handleRetry = async () => {
+    if (canRetry && lastAttemptedPhone) {
+      const canProceed = await retryLastOperation();
+      if (canProceed) {
+        const verificationResult = await verifyPhone(lastAttemptedPhone);
+        if (verificationResult) {
+          setResult(verificationResult);
+          onVerificationComplete?.();
+          toast({
+            title: "Verificación completada",
+            description: `Número ${verificationResult.status === 'valid' ? 'válido' : 'inválido'}`,
+          });
+        }
+      }
     }
   };
 
@@ -76,28 +95,66 @@ export const PhoneVerification = ({ onVerificationComplete }: PhoneVerificationP
 
         {displayError && (
           <Alert variant="destructive">
-            <XCircle className="h-4 w-4" />
-            <AlertDescription>{displayError}</AlertDescription>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>{displayError}</span>
+              {canRetry && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetry}
+                  disabled={isLoading}
+                  className="ml-2"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Reintentar
+                </Button>
+              )}
+            </AlertDescription>
           </Alert>
         )}
 
-        <Button 
-          onClick={handleVerify} 
-          disabled={isLoading || !phone}
-          className="w-full"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Verificando...
-            </>
-          ) : (
-            <>
-              <Phone className="mr-2 h-4 w-4" />
-              Verificar Teléfono
-            </>
+        {lastError?.type === 'quota_exceeded' && (
+          <Alert variant="destructive">
+            <XCircle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <p className="font-medium">Plan de NumVerify agotado</p>
+                <p className="text-sm">Contacta al administrador para renovar los créditos de verificación de teléfonos.</p>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleVerify} 
+            disabled={isLoading || !phone}
+            className="flex-1"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Verificando...
+              </>
+            ) : (
+              <>
+                <Phone className="mr-2 h-4 w-4" />
+                Verificar Teléfono
+              </>
+            )}
+          </Button>
+          
+          {canRetry && lastAttemptedPhone && (
+            <Button 
+              variant="outline"
+              onClick={handleRetry} 
+              disabled={isLoading}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           )}
-        </Button>
+        </div>
 
         {result && (
           <Card className="mt-4">
