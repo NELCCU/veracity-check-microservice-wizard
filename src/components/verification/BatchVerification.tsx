@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Database, CheckCircle, XCircle, Loader2, Upload } from "lucide-react";
+import { Database, CheckCircle, XCircle, Loader2, Upload, Copy } from "lucide-react";
 import { validatePhone, validateEmail, validateUrl, formatPhone, formatEmail, formatUrl } from "@/utils/validators";
 import { BatchVerificationRequest, BatchVerificationResult } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";

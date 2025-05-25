@@ -9,55 +9,38 @@ import { Phone, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { validatePhone, formatPhone } from "@/utils/validators";
 import { PhoneVerificationResult } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
+import { useVerification } from "@/hooks/useVerification";
 
 export const PhoneVerification = () => {
   const [phone, setPhone] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<PhoneVerificationResult | null>(null);
-  const [error, setError] = useState("");
+  const [validationError, setValidationError] = useState("");
   const { toast } = useToast();
+  const { verifyPhone, isLoading, error } = useVerification();
 
   const handleVerify = async () => {
     const formattedPhone = formatPhone(phone);
     const validation = validatePhone(formattedPhone);
     
     if (!validation.isValid) {
-      setError(validation.message || "");
+      setValidationError(validation.message || "");
       return;
     }
 
-    setError("");
-    setIsLoading(true);
+    setValidationError("");
     
-    try {
-      // Simulación de verificación (aquí iría la integración real con Supabase/API)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const mockResult: PhoneVerificationResult = {
-        status: Math.random() > 0.3 ? 'valid' : 'invalid',
-        details: {
-          country: "Estados Unidos",
-          carrier: "Verizon",
-          lineType: "Mobile",
-          isActive: true,
-          format: formattedPhone
-        },
-        timestamp: new Date().toISOString()
-      };
-      
-      setResult(mockResult);
+    const verificationResult = await verifyPhone(formattedPhone);
+    
+    if (verificationResult) {
+      setResult(verificationResult);
       toast({
         title: "Verificación completada",
-        description: `Número ${mockResult.status === 'valid' ? 'válido' : 'inválido'}`,
+        description: `Número ${verificationResult.status === 'valid' ? 'válido' : 'inválido'}`,
       });
-      
-    } catch (err) {
-      setError("Error al verificar el número de teléfono");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  const displayError = validationError || error;
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -86,10 +69,10 @@ export const PhoneVerification = () => {
           </p>
         </div>
 
-        {error && (
+        {displayError && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{displayError}</AlertDescription>
           </Alert>
         )}
 
