@@ -2,32 +2,36 @@
 import { DashboardStats } from "./DashboardStats";
 import { DashboardTabs } from "./DashboardTabs";
 import { ApiStatusIndicator } from "@/components/settings/ApiStatusIndicator";
+import { useQuery } from "@tanstack/react-query";
+import { verificationStorage } from "@/services/verificationStorage";
+import { dashboardService } from "@/services/dashboardService";
 
 export const Dashboard = () => {
-  // Mock data for now - in a real app this would come from API
-  const mockStats = {
-    today: {
-      phones: 0,
-      emails: 0,
-      websites: 0,
-      total: 0
-    }
-  };
+  // Cargar estadísticas de verificaciones
+  const { data: stats, refetch: refetchStats } = useQuery({
+    queryKey: ['verification-stats'],
+    queryFn: () => verificationStorage.getVerificationStats(),
+  });
 
-  const mockRecentVerifications = {
-    phones: [],
-    emails: [],
-    websites: []
-  };
-  
-  const mockAdvancedStats = {};
+  // Cargar verificaciones recientes
+  const { data: recentVerifications, refetch: refetchRecent } = useQuery({
+    queryKey: ['recent-verifications'],
+    queryFn: () => verificationStorage.getRecentVerifications(10),
+  });
+
+  // Cargar estadísticas avanzadas
+  const { data: advancedStats, refetch: refetchAdvanced, isLoading: loadingAdvanced } = useQuery({
+    queryKey: ['advanced-stats'],
+    queryFn: () => dashboardService.getAdvancedStats(),
+  });
 
   const handleRefreshStats = () => {
-    // Implement refresh logic
+    refetchStats();
+    refetchRecent();
   };
 
   const handleLoadAdvancedStats = () => {
-    // Implement advanced stats loading
+    refetchAdvanced();
   };
 
   return (
@@ -43,7 +47,7 @@ export const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <DashboardStats stats={mockStats} />
+          <DashboardStats stats={stats || { today: { phones: 0, emails: 0, websites: 0, total: 0 } }} />
         </div>
         <div>
           <ApiStatusIndicator />
@@ -51,9 +55,9 @@ export const Dashboard = () => {
       </div>
 
       <DashboardTabs 
-        recentVerifications={mockRecentVerifications}
-        advancedStats={mockAdvancedStats}
-        loadingAdvanced={false}
+        recentVerifications={recentVerifications || { phones: [], emails: [], websites: [] }}
+        advancedStats={advancedStats || {}}
+        loadingAdvanced={loadingAdvanced}
         onRefreshStats={handleRefreshStats}
         onLoadAdvancedStats={handleLoadAdvancedStats}
       />
