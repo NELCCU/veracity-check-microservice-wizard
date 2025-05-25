@@ -9,59 +9,38 @@ import { Globe, CheckCircle, XCircle, Loader2, Copy, TrendingUp } from "lucide-r
 import { validateUrl, formatUrl } from "@/utils/validators";
 import { WebsiteVerificationResult } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
+import { useVerification } from "@/hooks/useVerification";
 
 export const WebsiteVerification = () => {
   const [url, setUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<WebsiteVerificationResult | null>(null);
-  const [error, setError] = useState("");
+  const [validationError, setValidationError] = useState("");
   const { toast } = useToast();
+  const { verifyWebsite, isLoading, error } = useVerification();
 
   const handleVerify = async () => {
     const formattedUrl = formatUrl(url);
     const validation = validateUrl(formattedUrl);
     
     if (!validation.isValid) {
-      setError(validation.message || "");
+      setValidationError(validation.message || "");
       return;
     }
 
-    setError("");
-    setIsLoading(true);
+    setValidationError("");
     
-    try {
-      // Simulación de verificación (aquí iría la integración real con Supabase/API)
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      const mockResult: WebsiteVerificationResult = {
-        status: Math.random() > 0.1 ? 'valid' : 'invalid',
-        isDuplicate: Math.random() > 0.7,
-        traffic: {
-          monthlyVisits: Math.floor(Math.random() * 1000000),
-          ranking: Math.floor(Math.random() * 100000),
-          category: "Technology"
-        },
-        details: {
-          httpStatus: 200,
-          responseTime: Math.floor(Math.random() * 2000),
-          ssl: true
-        },
-        timestamp: new Date().toISOString()
-      };
-      
-      setResult(mockResult);
+    const verificationResult = await verifyWebsite(formattedUrl);
+    
+    if (verificationResult) {
+      setResult(verificationResult);
       toast({
         title: "Verificación completada",
-        description: `Sitio web ${mockResult.status === 'valid' ? 'válido' : 'inválido'}`,
+        description: `Sitio web ${verificationResult.status === 'valid' ? 'válido' : 'inválido'}`,
       });
-      
-    } catch (err) {
-      setError("Error al verificar el sitio web");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  const displayError = validationError || error;
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -89,10 +68,10 @@ export const WebsiteVerification = () => {
           </p>
         </div>
 
-        {error && (
+        {displayError && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{displayError}</AlertDescription>
           </Alert>
         )}
 

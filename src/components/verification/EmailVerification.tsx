@@ -9,55 +9,38 @@ import { Mail, CheckCircle, XCircle, Loader2, Shield } from "lucide-react";
 import { validateEmail, formatEmail } from "@/utils/validators";
 import { EmailVerificationResult } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
+import { useVerification } from "@/hooks/useVerification";
 
 export const EmailVerification = () => {
   const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<EmailVerificationResult | null>(null);
-  const [error, setError] = useState("");
+  const [validationError, setValidationError] = useState("");
   const { toast } = useToast();
+  const { verifyEmail, isLoading, error } = useVerification();
 
   const handleVerify = async () => {
     const formattedEmail = formatEmail(email);
     const validation = validateEmail(formattedEmail);
     
     if (!validation.isValid) {
-      setError(validation.message || "");
+      setValidationError(validation.message || "");
       return;
     }
 
-    setError("");
-    setIsLoading(true);
+    setValidationError("");
     
-    try {
-      // Simulación de verificación (aquí iría la integración real con Supabase/API)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const mockResult: EmailVerificationResult = {
-        status: Math.random() > 0.2 ? 'valid' : 'invalid',
-        details: {
-          isDeliverable: true,
-          isDisposable: Math.random() > 0.8,
-          domain: formattedEmail.split('@')[1],
-          mxRecords: true,
-          smtpCheck: true
-        },
-        timestamp: new Date().toISOString()
-      };
-      
-      setResult(mockResult);
+    const verificationResult = await verifyEmail(formattedEmail);
+    
+    if (verificationResult) {
+      setResult(verificationResult);
       toast({
         title: "Verificación completada",
-        description: `Email ${mockResult.status === 'valid' ? 'válido' : 'inválido'}`,
+        description: `Email ${verificationResult.status === 'valid' ? 'válido' : 'inválido'}`,
       });
-      
-    } catch (err) {
-      setError("Error al verificar el correo electrónico");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  const displayError = validationError || error;
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -85,10 +68,10 @@ export const EmailVerification = () => {
           </p>
         </div>
 
-        {error && (
+        {displayError && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{displayError}</AlertDescription>
           </Alert>
         )}
 

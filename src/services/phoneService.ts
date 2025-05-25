@@ -5,8 +5,8 @@ export class PhoneService {
   private apiKey: string | null = null;
 
   constructor() {
-    // En un entorno real, esto vendría de variables de entorno de Supabase
-    this.apiKey = process.env.VITE_PHONE_API_KEY || null;
+    // Usar variables de entorno de Vite
+    this.apiKey = import.meta.env.VITE_PHONE_API_KEY || null;
   }
 
   async verifyPhone(phone: string): Promise<PhoneVerificationResult> {

@@ -5,8 +5,8 @@ export class EmailService {
   private apiKey: string | null = null;
 
   constructor() {
-    // En un entorno real, esto vendría de variables de entorno de Supabase
-    this.apiKey = process.env.VITE_EMAIL_API_KEY || null;
+    // Usar variables de entorno de Vite
+    this.apiKey = import.meta.env.VITE_EMAIL_API_KEY || null;
   }
 
   async verifyEmail(email: string): Promise<EmailVerificationResult> {
