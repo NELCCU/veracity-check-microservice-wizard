@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Database, CheckCircle, XCircle, Loader2, Upload, Copy } from "lucide-react";
 import { validatePhone, validateEmail, validateUrl, formatPhone, formatEmail, formatUrl } from "@/utils/validators";
-import { BatchVerificationRequest, BatchVerificationResult } from "@/types/verification";
+import { BatchVerificationResult } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
+import { batchService } from "@/services/batchService";
 
 export const BatchVerification = () => {
   const [phones, setPhones] = useState("");
@@ -43,67 +44,22 @@ export const BatchVerification = () => {
     setIsLoading(true);
     
     try {
-      // Simulación de verificación en lote
-      await new Promise(resolve => setTimeout(resolve, 4000));
-      
-      const mockResult: BatchVerificationResult = {
-        phones: phoneList.map(phone => ({
-          status: Math.random() > 0.3 ? 'valid' : 'invalid',
-          details: {
-            country: "Estados Unidos",
-            carrier: "Carrier",
-            lineType: "Mobile",
-            isActive: true,
-            format: phone
-          },
-          timestamp: new Date().toISOString()
-        })),
-        emails: emailList.map(email => ({
-          status: Math.random() > 0.2 ? 'valid' : 'invalid',
-          details: {
-            isDeliverable: true,
-            isDisposable: false,
-            domain: email.split('@')[1],
-            mxRecords: true,
-            smtpCheck: true
-          },
-          timestamp: new Date().toISOString()
-        })),
-        websites: websiteList.map(website => ({
-          status: Math.random() > 0.1 ? 'valid' : 'invalid',
-          isDuplicate: Math.random() > 0.7,
-          traffic: {
-            monthlyVisits: Math.floor(Math.random() * 1000000),
-            ranking: Math.floor(Math.random() * 100000),
-            category: "Technology"
-          },
-          details: {
-            httpStatus: 200,
-            responseTime: Math.floor(Math.random() * 2000),
-            ssl: true
-          },
-          timestamp: new Date().toISOString()
-        })),
-        summary: {
-          total: phoneList.length + emailList.length + websiteList.length,
-          valid: 0,
-          invalid: 0
-        }
+      const batchRequest = {
+        phones: phoneList.length > 0 ? phoneList : undefined,
+        emails: emailList.length > 0 ? emailList : undefined,
+        websites: websiteList.length > 0 ? websiteList : undefined
       };
 
-      // Calcular resumen
-      const allResults = [...mockResult.phones, ...mockResult.emails, ...mockResult.websites];
-      mockResult.summary.valid = allResults.filter(r => r.status === 'valid').length;
-      mockResult.summary.invalid = allResults.filter(r => r.status === 'invalid').length;
+      const batchResult = await batchService.verifyBatch(batchRequest);
       
-      setResult(mockResult);
+      setResult(batchResult);
       toast({
         title: "Verificación en lote completada",
-        description: `${mockResult.summary.valid} válidos, ${mockResult.summary.invalid} inválidos`,
+        description: `${batchResult.summary.valid} válidos, ${batchResult.summary.invalid} inválidos`,
       });
       
     } catch (err) {
-      setError("Error al realizar la verificación en lote");
+      setError(err instanceof Error ? err.message : "Error al realizar la verificación en lote");
       console.error(err);
     } finally {
       setIsLoading(false);

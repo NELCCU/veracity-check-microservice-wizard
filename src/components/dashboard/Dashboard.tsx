@@ -3,10 +3,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Mail, Globe, BarChart3, History } from "lucide-react";
+import { Phone, Mail, Globe, BarChart3, History, Database } from "lucide-react";
 import { PhoneVerification } from "@/components/verification/PhoneVerification";
 import { EmailVerification } from "@/components/verification/EmailVerification";
 import { WebsiteVerification } from "@/components/verification/WebsiteVerification";
+import { BatchVerification } from "@/components/verification/BatchVerification";
 import { verificationStorage } from "@/services/verificationStorage";
 
 export const Dashboard = () => {
@@ -84,7 +85,7 @@ export const Dashboard = () => {
 
       {/* Área principal con pestañas */}
       <Tabs defaultValue="phone" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="phone" className="flex items-center gap-2">
             <Phone className="h-4 w-4" />
             Teléfonos
@@ -96,6 +97,10 @@ export const Dashboard = () => {
           <TabsTrigger value="website" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
             Sitios Web
+          </TabsTrigger>
+          <TabsTrigger value="batch" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            Lote
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-4 w-4" />
@@ -113,6 +118,10 @@ export const Dashboard = () => {
 
         <TabsContent value="website">
           <WebsiteVerification onVerificationComplete={refreshStats} />
+        </TabsContent>
+
+        <TabsContent value="batch">
+          <BatchVerification />
         </TabsContent>
 
         <TabsContent value="history">
