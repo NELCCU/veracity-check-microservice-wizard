@@ -9,6 +9,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { Header } from "@/components/layout/Header";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import Index from "./pages/Index";
+import ApiDocs from "./pages/ApiDocs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const AppContent = () => {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/api-docs" element={<ApiDocs />} />
               <Route path="/legacy" element={<Index />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
