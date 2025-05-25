@@ -10,6 +10,7 @@ import { Header } from "@/components/layout/Header";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import Index from "./pages/Index";
 import ApiDocs from "./pages/ApiDocs";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const AppContent = () => {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/api-docs" element={<ApiDocs />} />
               <Route path="/legacy" element={<Index />} />
               <Route path="*" element={<NotFound />} />
