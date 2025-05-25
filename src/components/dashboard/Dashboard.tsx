@@ -6,13 +6,20 @@ import { ApiStatusIndicator } from "@/components/settings/ApiStatusIndicator";
 export const Dashboard = () => {
   // Mock data for now - in a real app this would come from API
   const mockStats = {
-    totalVerifications: 0,
-    successfulVerifications: 0,
-    failedVerifications: 0,
-    todayVerifications: 0
+    today: {
+      phones: 0,
+      emails: 0,
+      websites: 0,
+      total: 0
+    }
   };
 
-  const mockRecentVerifications: any[] = [];
+  const mockRecentVerifications = {
+    phones: [],
+    emails: [],
+    websites: []
+  };
+  
   const mockAdvancedStats = {};
 
   const handleRefreshStats = () => {
