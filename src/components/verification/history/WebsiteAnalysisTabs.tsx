@@ -44,6 +44,10 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
   const duplicateDetails = parseJsonField(verification.duplicate_details, {});
   const imitationAnalysis = parseJsonField(verification.imitation_analysis, {});
 
+  console.log('📊 Parsed similar sites:', similarSites);
+  console.log('📋 Parsed duplicate details:', duplicateDetails);
+  console.log('🎭 Parsed imitation analysis:', imitationAnalysis);
+
   const getTrustScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600 bg-green-50";
     if (score >= 60) return "text-yellow-600 bg-yellow-50";
@@ -88,7 +92,7 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
         <TabsTrigger value="duplicates">
           <div className="flex items-center gap-1">
             Duplicados
-            {(verification.is_duplicate || (similarSites && similarSites.length > 0)) && (
+            {(verification.is_duplicate || (Array.isArray(similarSites) && similarSites.length > 0)) && (
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
             )}
           </div>
@@ -126,6 +130,12 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
             <span className="font-medium">SSL/TLS:</span>
             <Badge className={`ml-2 ${verification.ssl_enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
               {verification.ssl_enabled ? 'Activo' : 'Inactivo'}
+            </Badge>
+          </div>
+          <div>
+            <span className="font-medium">Puntuación de Confianza:</span>
+            <Badge className={`ml-2 ${getTrustScoreColor(verification.trust_score || 0)}`}>
+              {verification.trust_score || 0}/100
             </Badge>
           </div>
         </div>
@@ -179,7 +189,7 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
               </div>
             )}
 
-            {similarSites && similarSites.length > 0 ? (
+            {Array.isArray(similarSites) && similarSites.length > 0 ? (
               <div>
                 <h4 className="font-medium mb-3 flex items-center gap-2">
                   <Link2 className="h-4 w-4 text-blue-600" />
@@ -272,6 +282,20 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
                   {verification.ssl_enabled ? 'Activo' : 'Inactivo'}
                 </Badge>
               </div>
+              <div>
+                <span className="font-medium">Nivel de Riesgo:</span>
+                <Badge className={`ml-2 ${getRiskLevelColor(verification.risk_level || 'Unknown')}`}>
+                  {verification.risk_level || 'Desconocido'}
+                </Badge>
+              </div>
+              <div>
+                <span className="font-medium">Puntuación de Reputación:</span>
+                <span className="ml-2">{verification.reputation_score || 0}/100</span>
+              </div>
+              <div>
+                <span className="font-medium">Grado SSL:</span>
+                <span className="ml-2">{verification.ssl_grade || 'N/A'}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -292,6 +316,10 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
                 <span className="ml-2">{new URL(verification.url).hostname}</span>
               </div>
               <div>
+                <span className="font-medium">Edad del Dominio:</span>
+                <span className="ml-2">{verification.domain_age_days || 0} días</span>
+              </div>
+              <div className="md:col-span-2">
                 <span className="font-medium">URL Completa:</span>
                 <span className="ml-2 text-xs break-all">{verification.url}</span>
               </div>
@@ -309,14 +337,28 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="space-y-2 text-sm">
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium">Título:</span>
-                <p className="text-gray-600 text-xs mt-1">{verification.content_fingerprint || 'No disponible'}</p>
+                <span className="font-medium">Puntuación de Contenido:</span>
+                <span className="ml-2">{verification.content_score || 0}/100</span>
               </div>
               <div>
-                <span className="font-medium">Dominio:</span>
-                <p className="text-gray-600 text-xs mt-1">{verification.visual_fingerprint || 'No disponible'}</p>
+                <span className="font-medium">Política de Privacidad:</span>
+                <Badge className={`ml-2 ${verification.has_privacy_policy ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {verification.has_privacy_policy ? 'Sí' : 'No'}
+                </Badge>
+              </div>
+              <div>
+                <span className="font-medium">Términos de Servicio:</span>
+                <Badge className={`ml-2 ${verification.has_terms_of_service ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {verification.has_terms_of_service ? 'Sí' : 'No'}
+                </Badge>
+              </div>
+              <div>
+                <span className="font-medium">Información de Contacto:</span>
+                <Badge className={`ml-2 ${verification.has_contact_info ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {verification.has_contact_info ? 'Sí' : 'No'}
+                </Badge>
               </div>
             </div>
           </CardContent>
@@ -387,6 +429,10 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
                   {verification.ssl_enabled ? 'Sí' : 'No'}
                 </span>
               </div>
+              <div>
+                <span className="font-medium">Grado SSL:</span>
+                <span className="ml-2">{verification.ssl_grade || 'N/A'}</span>
+              </div>
             </div>
             
             {verification.ssl_enabled && (
@@ -397,6 +443,7 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
                 </h4>
                 <div className="text-xs space-y-1">
                   <div>Estado: Activo</div>
+                  <div>Grado: {verification.ssl_grade || 'N/A'}</div>
                 </div>
               </div>
             )}

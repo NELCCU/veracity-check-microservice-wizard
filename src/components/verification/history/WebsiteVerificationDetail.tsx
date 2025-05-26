@@ -24,6 +24,10 @@ export const WebsiteVerificationDetail = ({ verification }: WebsiteVerificationD
   const duplicateDetails = parseJsonField(verification.duplicate_details, {});
   const imitationAnalysis = parseJsonField(verification.imitation_analysis, {});
 
+  console.log('🔍 Verification data:', verification);
+  console.log('📋 Duplicate details:', duplicateDetails);
+  console.log('🎭 Imitation analysis:', imitationAnalysis);
+
   return (
     <div className="space-y-4">
       {verification.is_duplicate && (

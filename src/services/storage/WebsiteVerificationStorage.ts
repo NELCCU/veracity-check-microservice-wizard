@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WebsiteVerificationResult } from "@/types/verification";
 import { BaseVerificationStorage } from "./BaseVerificationStorage";
@@ -10,7 +11,7 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
       console.log(`🌐 Guardando verificación de sitio web para usuario: ${user.id}, URL: ${url}`);
       console.log('📊 Datos del resultado:', result);
 
-      // Preparar los datos para insertar, asegurando que todos los campos JSON sean válidos
+      // Preparar los datos para insertar, asegurando que todos los campos estén mapeados correctamente
       const insertData = {
         user_id: user.id,
         url: url,
@@ -22,9 +23,20 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
         monthly_visits: result.traffic?.monthlyVisits || null,
         ranking: result.traffic?.ranking || null,
         category: result.traffic?.category || null,
-        duplicate_details: result.duplicateDetails ? JSON.stringify(result.duplicateDetails) : '{}',
-        similar_sites: result.similarSites ? JSON.stringify(result.similarSites) : '[]',
-        imitation_analysis: result.imitationAnalysis ? JSON.stringify(result.imitationAnalysis) : '{}',
+        // Campos que estaban faltando
+        trust_score: result.trustScore || 0,
+        domain_age_days: result.domainInfo?.ageInDays || 0,
+        ssl_grade: result.sslInfo?.grade || 'F',
+        content_score: result.contentAnalysis?.contentScore || 0,
+        risk_level: result.securityAnalysis?.riskLevel || 'Unknown',
+        has_privacy_policy: result.contentAnalysis?.hasPrivacyPolicy || false,
+        has_terms_of_service: result.contentAnalysis?.hasTermsOfService || false,
+        has_contact_info: result.contentAnalysis?.hasContactInfo || false,
+        reputation_score: result.securityAnalysis?.reputationScore || 0,
+        // Campos JSON - asegurar que sean objetos válidos antes de stringify
+        duplicate_details: result.duplicateDetails ? JSON.stringify(result.duplicateDetails) : JSON.stringify({}),
+        similar_sites: result.similarSites ? JSON.stringify(result.similarSites) : JSON.stringify([]),
+        imitation_analysis: result.imitationAnalysis ? JSON.stringify(result.imitationAnalysis) : JSON.stringify({}),
         content_fingerprint: result.contentFingerprint || '',
         visual_fingerprint: result.visualFingerprint || ''
       };
