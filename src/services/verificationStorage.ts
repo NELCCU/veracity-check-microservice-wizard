@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { PhoneVerificationResult, EmailVerificationResult, WebsiteVerificationResult } from "@/types/verification";
 
@@ -61,7 +60,6 @@ export class VerificationStorage {
       const { error } = await supabase
         .from('website_verifications')
         .insert({
-          user_id: user.id,
           url: url,
           status: result.status,
           is_duplicate: result.isDuplicate,
