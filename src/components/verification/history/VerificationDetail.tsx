@@ -44,6 +44,21 @@ export const VerificationDetail = ({ selectedItem, onBackToList, onVerificationD
     }
   };
 
+  const getTrustScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-600 bg-green-50";
+    if (score >= 60) return "text-yellow-600 bg-yellow-50";
+    return "text-red-600 bg-red-50";
+  };
+
+  const getRiskLevelColor = (level: string) => {
+    switch (level) {
+      case 'Low': return "text-green-600 bg-green-100";
+      case 'Medium': return "text-yellow-600 bg-yellow-100";
+      case 'High': return "text-red-600 bg-red-100";
+      default: return "text-gray-600 bg-gray-100";
+    }
+  };
+
   // Generar número de caso basado en el ID y timestamp
   const generateCaseNumber = (id: string, createdAt: string) => {
     const shortId = id.substring(0, 8).toUpperCase();
@@ -199,9 +214,26 @@ export const VerificationDetail = ({ selectedItem, onBackToList, onVerificationD
                 <p className="text-sm text-gray-600">{getTitle()}</p>
               </div>
             </div>
-            <Badge variant={selectedItem.status === 'valid' ? 'default' : 'destructive'} className="text-sm px-3 py-1">
-              {selectedItem.status === 'valid' ? 'Válido' : 'Inválido'}
-            </Badge>
+            <div className="flex items-center gap-2">
+              {selectedItem.type === 'website' && selectedItem.trust_score && (
+                <Badge className={`px-3 py-1 ${getTrustScoreColor(selectedItem.trust_score)}`}>
+                  Score: {selectedItem.trust_score}/100
+                </Badge>
+              )}
+              {selectedItem.type === 'website' && selectedItem.risk_level && (
+                <Badge className={getRiskLevelColor(selectedItem.risk_level)}>
+                  Riesgo: {selectedItem.risk_level}
+                </Badge>
+              )}
+              {selectedItem.type === 'website' && selectedItem.is_duplicate && (
+                <Badge className="bg-orange-100 text-orange-800">
+                  Duplicado
+                </Badge>
+              )}
+              <Badge variant={selectedItem.status === 'valid' ? 'default' : 'destructive'} className="text-sm px-3 py-1">
+                {selectedItem.status === 'valid' ? 'Válido' : 'Inválido'}
+              </Badge>
+            </div>
           </div>
 
           {/* Contenido específico del análisis */}
