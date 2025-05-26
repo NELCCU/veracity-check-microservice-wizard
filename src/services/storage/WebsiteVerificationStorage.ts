@@ -9,44 +9,56 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
     try {
       const user = await this.getAuthenticatedUser();
       const caseNumber = this.generateCaseNumber();
-      console.log(`Guardando verificación de sitio web - Caso: ${caseNumber}, URL: ${url}`);
+      console.log(`🔍 Guardando verificación de sitio web - Caso: ${caseNumber}, URL: ${url}`);
+      console.log('📊 Datos del resultado:', result);
 
-      // Preparar los datos para insertar, convirtiendo tipos personalizados a JSON
+      // Preparar los datos para insertar, asegurando que todos los campos JSON sean válidos
       const insertData = {
+        user_id: user.id,
         url: url,
         status: result.status,
-        is_duplicate: result.isDuplicate,
-        http_status: result.details.httpStatus,
-        response_time: result.details.responseTime,
-        ssl_enabled: result.details.ssl,
-        monthly_visits: result.traffic?.monthlyVisits,
-        ranking: result.traffic?.ranking,
-        category: result.traffic?.category,
-        duplicate_details: JSON.parse(JSON.stringify(result.duplicateDetails || {})),
-        similar_sites: JSON.parse(JSON.stringify(result.similarSites || [])),
-        imitation_analysis: JSON.parse(JSON.stringify(result.imitationAnalysis || {})),
+        is_duplicate: result.isDuplicate || false,
+        http_status: result.details?.httpStatus || 0,
+        response_time: result.details?.responseTime || 0,
+        ssl_enabled: result.details?.ssl || false,
+        monthly_visits: result.traffic?.monthlyVisits || null,
+        ranking: result.traffic?.ranking || null,
+        category: result.traffic?.category || null,
+        duplicate_details: result.duplicateDetails ? JSON.stringify(result.duplicateDetails) : '{}',
+        similar_sites: result.similarSites ? JSON.stringify(result.similarSites) : '[]',
+        imitation_analysis: result.imitationAnalysis ? JSON.stringify(result.imitationAnalysis) : '{}',
         content_fingerprint: result.contentFingerprint || '',
         visual_fingerprint: result.visualFingerprint || ''
-      } as any;
+      };
 
-      // Añadir user_id de forma explícita
-      (insertData as any).user_id = user.id;
-
-      console.log('Datos a insertar:', insertData);
+      console.log('💾 Datos preparados para insertar:', insertData);
 
       const { data, error } = await supabase
         .from('website_verifications')
-        .insert(insertData)
+        .insert([insertData])
         .select();
 
       if (error) {
-        console.error('Error detallado al guardar verificación de sitio web:', error);
-        throw error;
+        console.error('❌ Error detallado al guardar verificación de sitio web:', error);
+        console.error('🔍 Detalles del error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw new Error(`Error al guardar en base de datos: ${error.message}`);
       }
 
-      console.log(`Verificación de sitio web guardada exitosamente - Caso: ${caseNumber}`, data);
+      if (!data || data.length === 0) {
+        console.error('❌ No se recibieron datos después de la inserción');
+        throw new Error('No se pudo confirmar el guardado de la verificación');
+      }
+
+      console.log(`✅ Verificación de sitio web guardada exitosamente - Caso: ${caseNumber}`, data[0]);
+      return data[0];
     } catch (error) {
-      console.error('Error guardando verificación de sitio web:', error);
+      console.error('💥 Error crítico guardando verificación de sitio web:', error);
+      console.error('🔍 Stack trace:', error.stack);
       throw error;
     }
   }
@@ -54,17 +66,24 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
   async getRecentWebsiteVerifications(limit: number = 10) {
     try {
       const user = await this.getAuthenticatedUser();
+      console.log(`📋 Obteniendo verificaciones recientes de sitio web para usuario: ${user.id}`);
       
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('website_verifications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit);
 
+      if (error) {
+        console.error('❌ Error obteniendo verificaciones de sitio web:', error);
+        throw error;
+      }
+
+      console.log(`📊 Verificaciones encontradas: ${data?.length || 0}`);
       return data || [];
     } catch (error) {
-      console.error('Error obteniendo verificaciones de sitio web:', error);
+      console.error('💥 Error obteniendo verificaciones de sitio web:', error);
       return [];
     }
   }
@@ -73,15 +92,20 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
     try {
       const user = await this.getAuthenticatedUser();
 
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from('website_verifications')
         .select('id', { count: 'exact' })
         .eq('user_id', user.id)
         .gte('created_at', today);
 
+      if (error) {
+        console.error('❌ Error obteniendo estadísticas de sitio web:', error);
+        throw error;
+      }
+
       return count || 0;
     } catch (error) {
-      console.error('Error obteniendo estadísticas de sitio web:', error);
+      console.error('💥 Error obteniendo estadísticas de sitio web:', error);
       return 0;
     }
   }
