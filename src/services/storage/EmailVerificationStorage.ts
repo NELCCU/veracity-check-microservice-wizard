@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { EmailVerificationResult } from "@/types/verification";
 import { BaseVerificationStorage } from "./BaseVerificationStorage";
@@ -97,12 +96,20 @@ export class EmailVerificationStorage extends BaseVerificationStorage {
       
       console.log(`🗑️ Eliminando verificación de email - Caso: ${caseNumber}, ID parcial: ${shortId}`);
       
-      // Usar ILIKE con conversión de UUID a texto
+      // Primero buscar el registro específico
+      const record = await this.findRecordByPartialId('email_verifications', shortId);
+      
+      if (!record) {
+        console.log(`⚠️ No se encontró verificación de email con el caso: ${caseNumber}`);
+        return false;
+      }
+
+      // Eliminar el registro específico por ID completo
       const { data, error } = await supabase
         .from('email_verifications')
         .delete()
         .eq('user_id', user.id)
-        .ilike('id::text', `${shortId.toLowerCase()}%`)
+        .eq('id', record.id)
         .select();
 
       if (error) {
@@ -113,8 +120,6 @@ export class EmailVerificationStorage extends BaseVerificationStorage {
       const deleted = data && data.length > 0;
       if (deleted) {
         console.log(`✅ Verificación de email eliminada exitosamente - Caso: ${caseNumber}`, data[0]);
-      } else {
-        console.log(`⚠️ No se encontró verificación de email con el caso: ${caseNumber}`);
       }
 
       return deleted;
