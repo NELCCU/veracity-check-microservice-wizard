@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import { WebsiteVerificationResult, SimilarSite } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
+import { RiskCriteriaExplanation } from "./RiskCriteriaExplanation";
 
 interface WebsiteVerificationResultsProps {
   result: WebsiteVerificationResult;
@@ -175,8 +175,9 @@ export const WebsiteVerificationResults = ({ result }: WebsiteVerificationResult
         )}
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="overview">Resumen</TabsTrigger>
+            <TabsTrigger value="risk">Criterios Riesgo</TabsTrigger>
             <TabsTrigger value="duplicates">
               <div className="flex items-center gap-1">
                 Duplicados
@@ -225,6 +226,10 @@ export const WebsiteVerificationResults = ({ result }: WebsiteVerificationResult
                 <span className="ml-2">{Math.floor(result.domainInfo.ageInDays / 365)} años</span>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="risk" className="space-y-4">
+            <RiskCriteriaExplanation result={result} />
           </TabsContent>
 
           <TabsContent value="duplicates" className="space-y-4">
