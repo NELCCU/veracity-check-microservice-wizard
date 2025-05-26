@@ -1,7 +1,6 @@
 
 import { DashboardStats } from "./DashboardStats";
 import { DashboardTabs } from "./DashboardTabs";
-import { ApiStatusIndicator } from "@/components/settings/ApiStatusIndicator";
 import { useQuery } from "@tanstack/react-query";
 import { verificationStorage } from "@/services/verificationStorage";
 import { dashboardService } from "@/services/dashboardService";
@@ -45,13 +44,8 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <DashboardStats stats={stats || { today: { phones: 0, emails: 0, websites: 0, total: 0 } }} />
-        </div>
-        <div>
-          <ApiStatusIndicator />
-        </div>
+      <div className="w-full">
+        <DashboardStats stats={stats || { today: { phones: 0, emails: 0, websites: 0, total: 0 } }} />
       </div>
 
       <DashboardTabs 
