@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { PhoneVerificationResult, EmailVerificationResult, WebsiteVerificationResult } from "@/types/verification";
 
@@ -70,7 +69,17 @@ export class VerificationStorage {
           ssl_enabled: result.details.ssl,
           monthly_visits: result.traffic?.monthlyVisits,
           ranking: result.traffic?.ranking,
-          category: result.traffic?.category
+          category: result.traffic?.category,
+          // Campos adicionales para persistir más información del análisis
+          trust_score: result.trustScore,
+          domain_age_days: result.domainInfo?.ageInDays,
+          ssl_grade: result.sslInfo?.grade,
+          content_score: result.contentAnalysis?.contentScore,
+          risk_level: result.securityAnalysis?.riskLevel,
+          has_privacy_policy: result.contentAnalysis?.hasPrivacyPolicy,
+          has_terms_of_service: result.contentAnalysis?.hasTermsOfService,
+          has_contact_info: result.contentAnalysis?.hasContactInfo,
+          reputation_score: result.securityAnalysis?.reputationScore
         });
 
       if (error) throw error;
