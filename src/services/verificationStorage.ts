@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { PhoneVerificationResult, EmailVerificationResult, WebsiteVerificationResult } from "@/types/verification";
 
@@ -70,7 +71,7 @@ export class VerificationStorage {
           monthly_visits: result.traffic?.monthlyVisits,
           ranking: result.traffic?.ranking,
           category: result.traffic?.category,
-          // Campos adicionales para persistir más información del análisis
+          // Guardar todos los datos del análisis completo
           trust_score: result.trustScore,
           domain_age_days: result.domainInfo?.ageInDays,
           ssl_grade: result.sslInfo?.grade,
@@ -79,7 +80,13 @@ export class VerificationStorage {
           has_privacy_policy: result.contentAnalysis?.hasPrivacyPolicy,
           has_terms_of_service: result.contentAnalysis?.hasTermsOfService,
           has_contact_info: result.contentAnalysis?.hasContactInfo,
-          reputation_score: result.securityAnalysis?.reputationScore
+          reputation_score: result.securityAnalysis?.reputationScore,
+          // Guardar análisis completo como JSON
+          duplicate_details: result.duplicateDetails || {},
+          similar_sites: result.similarSites || [],
+          imitation_analysis: result.imitationAnalysis || {},
+          content_fingerprint: result.contentAnalysis?.title || '',
+          visual_fingerprint: result.domainInfo?.domain || ''
         });
 
       if (error) throw error;

@@ -4,8 +4,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Phone, Mail, Globe, History, Eye, TrendingUp, Shield, Lock, Clock, Server, FileText, ExternalLink, Facebook, Instagram, Linkedin, Twitter, Youtube, CheckCircle, XCircle } from "lucide-react";
-import { WebsiteVerificationResult } from "@/types/verification";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  Phone, 
+  Mail, 
+  Globe, 
+  History, 
+  Eye, 
+  TrendingUp, 
+  Shield, 
+  Lock, 
+  Clock, 
+  Server, 
+  FileText, 
+  ExternalLink, 
+  Facebook, 
+  Instagram, 
+  Linkedin, 
+  Twitter, 
+  Youtube, 
+  CheckCircle, 
+  XCircle,
+  AlertTriangle,
+  Copy,
+  Target,
+  Link2
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface RecentVerificationsProps {
   recentVerifications: {
@@ -18,6 +43,7 @@ interface RecentVerificationsProps {
 export const RecentVerifications = ({ recentVerifications }: RecentVerificationsProps) => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+  const { toast } = useToast();
 
   const hasNoVerifications = 
     recentVerifications.phones.length === 0 && 
@@ -70,73 +96,26 @@ export const RecentVerifications = ({ recentVerifications }: RecentVerifications
     }
   };
 
-  // Helper function to reconstruct full website analysis from stored data
-  const reconstructWebsiteAnalysis = (item: any) => {
-    return {
-      status: item.status,
-      isDuplicate: item.is_duplicate || false,
-      trustScore: item.trust_score || 0,
-      details: {
-        httpStatus: item.http_status,
-        responseTime: item.response_time,
-        ssl: item.ssl_enabled,
-        contentLength: 0
-      },
-      traffic: item.monthly_visits ? {
-        monthlyVisits: item.monthly_visits,
-        ranking: item.ranking,
-        category: item.category,
-        bounceRate: 0,
-        avgVisitDuration: 0,
-        pagesPerVisit: 0
-      } : null,
-      securityAnalysis: {
-        riskLevel: item.risk_level || 'Unknown',
-        reputationScore: item.reputation_score || 0,
-        blacklisted: false,
-        phishingRisk: false,
-        securityHeaders: {
-          hasXFrameOptions: false,
-          hasCSP: false,
-          hasHSTS: false
-        }
-      },
-      domainInfo: {
-        domain: new URL(item.url).hostname,
-        registrar: 'N/A',
-        registrationDate: null,
-        expiryDate: null,
-        ageInDays: item.domain_age_days || 0,
-        whoisPrivacy: false,
-        nameServers: []
-      },
-      contentAnalysis: {
-        contentScore: item.content_score || 0,
-        title: '',
-        description: '',
-        language: 'es',
-        hasContactInfo: item.has_contact_info || false,
-        hasPrivacyPolicy: item.has_privacy_policy || false,
-        hasTermsOfService: item.has_terms_of_service || false,
-        hasCookiePolicy: false,
-        socialMediaLinks: []
-      },
-      sslInfo: {
-        enabled: item.ssl_enabled || false,
-        valid: item.ssl_enabled || false,
-        grade: item.ssl_grade || 'N/A',
-        issuer: 'N/A',
-        expiryDate: null
-      },
-      responseHeaders: {
-        server: 'N/A',
-        contentType: 'text/html'
-      },
-      technologyStack: {
-        framework: 'N/A'
-      },
-      timestamp: item.created_at
-    };
+  const getRelationshipColor = (type: string) => {
+    switch (type) {
+      case 'duplicate': return "text-red-600 bg-red-100";
+      case 'imitation': return "text-orange-600 bg-orange-100";
+      case 'similar': return "text-blue-600 bg-blue-100";
+      case 'suspicious': return "text-purple-600 bg-purple-100";
+      default: return "text-gray-600 bg-gray-100";
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copiado",
+      description: "URL copiada al portapapeles",
+    });
+  };
+
+  const openUrl = (url: string) => {
+    window.open(url, '_blank');
   };
 
   if (viewMode === 'detail' && selectedItem) {
@@ -146,7 +125,7 @@ export const RecentVerifications = ({ recentVerifications }: RecentVerifications
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <History className="h-5 w-5" />
-              Detalle de Verificación
+              Detalle Completo del Análisis de Debida Diligencia
             </CardTitle>
             <Button variant="outline" onClick={handleBackToList}>
               Volver al Historial
@@ -250,15 +229,56 @@ export const RecentVerifications = ({ recentVerifications }: RecentVerifications
                       Score: {selectedItem.trust_score}/100
                     </Badge>
                   )}
+                  {selectedItem.risk_level && (
+                    <Badge className={getRiskLevelColor(selectedItem.risk_level)}>
+                      Riesgo: {selectedItem.risk_level}
+                    </Badge>
+                  )}
                   <Badge variant={selectedItem.status === 'valid' ? 'default' : 'destructive'}>
                     {selectedItem.status === 'valid' ? 'Válido' : 'Inválido'}
                   </Badge>
                 </div>
               </div>
 
+              {/* Alertas de duplicados e imitación */}
+              {selectedItem.is_duplicate && (
+                <Alert className="border-orange-200 bg-orange-50">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-orange-800">
+                    <strong>Sitio Duplicado:</strong> Este sitio web ya ha sido verificado anteriormente.
+                    {selectedItem.duplicate_details?.original_date && (
+                      <div className="mt-2 text-sm">
+                        Verificación original: {new Date(selectedItem.duplicate_details.original_date).toLocaleDateString()}
+                      </div>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {selectedItem.imitation_analysis?.is_potential_imitation && (
+                <Alert variant="destructive">
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Posible Imitación Detectada:</strong> Este sitio presenta características que sugieren que podría ser una imitación.
+                    {selectedItem.imitation_analysis.target_brand && (
+                      <div className="mt-1">Posible imitación de: <strong>{selectedItem.imitation_analysis.target_brand}</strong></div>
+                    )}
+                    <div className="mt-1">Score de imitación: <strong>{selectedItem.imitation_analysis.imitation_score}/100</strong></div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-6">
+                <TabsList className="grid w-full grid-cols-7">
                   <TabsTrigger value="overview">Resumen</TabsTrigger>
+                  <TabsTrigger value="duplicates">
+                    <div className="flex items-center gap-1">
+                      Duplicados
+                      {(selectedItem.is_duplicate || (selectedItem.similar_sites && selectedItem.similar_sites.length > 0)) && (
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      )}
+                    </div>
+                  </TabsTrigger>
                   <TabsTrigger value="security">Seguridad</TabsTrigger>
                   <TabsTrigger value="domain">Dominio</TabsTrigger>
                   <TabsTrigger value="content">Contenido</TabsTrigger>
@@ -269,7 +289,19 @@ export const RecentVerifications = ({ recentVerifications }: RecentVerifications
                 <TabsContent value="overview" className="space-y-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="font-medium">Estado HTTP:</span>
+                      <span className="font-medium">Estado:</span>
+                      <Badge className={`ml-2 ${selectedItem.status === 'valid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {selectedItem.status === 'valid' ? 'Válido' : 'Inválido'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="font-medium">Duplicado:</span>
+                      <Badge className={`ml-2 ${selectedItem.is_duplicate ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}`}>
+                        {selectedItem.is_duplicate ? 'Sí' : 'No'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="font-medium">Código HTTP:</span>
                       <span className="ml-2">{selectedItem.http_status}</span>
                     </div>
                     <div>
@@ -279,16 +311,183 @@ export const RecentVerifications = ({ recentVerifications }: RecentVerifications
                     <div>
                       <span className="font-medium">SSL/TLS:</span>
                       <Badge className={`ml-2 ${selectedItem.ssl_enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {selectedItem.ssl_enabled ? 'Activo' : 'Inactivo'}
+                        {selectedItem.ssl_enabled ? `Activo (${selectedItem.ssl_grade || 'N/A'})` : 'Inactivo'}
                       </Badge>
                     </div>
                     <div>
-                      <span className="font-medium">Duplicado:</span>
-                      <Badge className={`ml-2 ${selectedItem.is_duplicate ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}`}>
-                        {selectedItem.is_duplicate ? 'Sí' : 'No'}
-                      </Badge>
+                      <span className="font-medium">Edad del Dominio:</span>
+                      <span className="ml-2">{selectedItem.domain_age_days ? Math.floor(selectedItem.domain_age_days / 365) : 0} años</span>
                     </div>
                   </div>
+                </TabsContent>
+
+                <TabsContent value="duplicates" className="space-y-4">
+                  <Card className="bg-red-50 border-red-200">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Target className="h-4 w-4 text-red-600" />
+                        Análisis de Duplicados y Sitios Similares
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {selectedItem.is_duplicate && (
+                        <div className="p-4 bg-red-100 rounded-lg">
+                          <h4 className="font-medium mb-2 flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-red-600" />
+                            Sitio Duplicado Detectado
+                          </h4>
+                          <div className="text-sm space-y-2">
+                            {selectedItem.duplicate_details?.exact_match && (
+                              <div>
+                                <span className="font-medium">Tipo:</span> Coincidencia exacta
+                              </div>
+                            )}
+                            {selectedItem.duplicate_details?.original_url && (
+                              <div className="flex items-center justify-between p-2 bg-white rounded border">
+                                <span className="text-xs break-all">{selectedItem.duplicate_details.original_url}</span>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => copyToClipboard(selectedItem.duplicate_details.original_url)}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => openUrl(selectedItem.duplicate_details.original_url)}
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                            {selectedItem.duplicate_details?.original_date && (
+                              <div>
+                                <span className="font-medium">Fecha original:</span> {new Date(selectedItem.duplicate_details.original_date).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedItem.similar_sites && selectedItem.similar_sites.length > 0 ? (
+                        <div>
+                          <h4 className="font-medium mb-3 flex items-center gap-2">
+                            <Link2 className="h-4 w-4 text-blue-600" />
+                            Sitios Similares Encontrados ({selectedItem.similar_sites.length})
+                          </h4>
+                          <div className="space-y-3">
+                            {selectedItem.similar_sites.map((site: any, index: number) => (
+                              <div key={index} className="p-3 bg-white rounded-lg border border-gray-200">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={`text-xs ${getRelationshipColor(site.relationship_type)}`}>
+                                      {site.relationship_type === 'duplicate' && 'Duplicado'}
+                                      {site.relationship_type === 'imitation' && 'Imitación'}
+                                      {site.relationship_type === 'similar' && 'Similar'}
+                                      {site.relationship_type === 'suspicious' && 'Sospechoso'}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {site.similarity_score}% similar
+                                    </Badge>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => copyToClipboard(site.url)}
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => openUrl(site.url)}
+                                    >
+                                      <ExternalLink className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="text-sm text-gray-600 break-all mb-2">
+                                  {site.url}
+                                </div>
+                                {site.analysis_details && (
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    {site.analysis_details.content_similarity && (
+                                      <div>
+                                        <span className="font-medium">Contenido:</span> {Math.round(site.analysis_details.content_similarity)}%
+                                      </div>
+                                    )}
+                                    {site.analysis_details.domain_similarity && (
+                                      <div>
+                                        <span className="font-medium">Dominio:</span> {Math.round(site.analysis_details.domain_similarity)}%
+                                      </div>
+                                    )}
+                                    {site.analysis_details.structural_similarity && (
+                                      <div>
+                                        <span className="font-medium">Estructura:</span> {Math.round(site.analysis_details.structural_similarity)}%
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : !selectedItem.is_duplicate && (
+                        <div className="text-center text-gray-500 py-8">
+                          <Globe className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                          <p>No se encontraron sitios duplicados o similares</p>
+                          <p className="text-sm">Este sitio web parece ser único en nuestra base de datos</p>
+                        </div>
+                      )}
+
+                      {selectedItem.imitation_analysis?.is_potential_imitation && (
+                        <div className="p-4 bg-orange-100 rounded-lg">
+                          <h4 className="font-medium mb-2 flex items-center gap-2">
+                            <Eye className="h-4 w-4 text-orange-600" />
+                            Análisis de Imitación
+                          </h4>
+                          <div className="text-sm space-y-2">
+                            <div>
+                              <span className="font-medium">Score de imitación:</span> {selectedItem.imitation_analysis.imitation_score}/100
+                            </div>
+                            {selectedItem.imitation_analysis.target_brand && (
+                              <div>
+                                <span className="font-medium">Posible marca imitada:</span> {selectedItem.imitation_analysis.target_brand}
+                              </div>
+                            )}
+                            {selectedItem.imitation_analysis.suspicious_elements?.length > 0 && (
+                              <div>
+                                <span className="font-medium">Elementos sospechosos:</span>
+                                <ul className="list-disc list-inside mt-1 text-xs">
+                                  {selectedItem.imitation_analysis.suspicious_elements.map((element: string, idx: number) => (
+                                    <li key={idx}>{element}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {selectedItem.imitation_analysis.legitimate_indicators?.length > 0 && (
+                              <div>
+                                <span className="font-medium">Indicadores legítimos:</span>
+                                <ul className="list-disc list-inside mt-1 text-xs">
+                                  {selectedItem.imitation_analysis.legitimate_indicators.map((indicator: string, idx: number) => (
+                                    <li key={idx}>{indicator}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </TabsContent>
 
                 <TabsContent value="security" className="space-y-4">
@@ -384,6 +583,17 @@ export const RecentVerifications = ({ recentVerifications }: RecentVerifications
                           </Badge>
                         </div>
                       )}
+                      
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="font-medium">Título:</span>
+                          <p className="text-gray-600 text-xs mt-1">{selectedItem.content_fingerprint || 'No disponible'}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Dominio:</span>
+                          <p className="text-gray-600 text-xs mt-1">{selectedItem.visual_fingerprint || 'No disponible'}</p>
+                        </div>
+                      </div>
                       
                       <div className="mt-4">
                         <h4 className="font-medium mb-2">Políticas y Contacto:</h4>
@@ -519,7 +729,7 @@ export const RecentVerifications = ({ recentVerifications }: RecentVerifications
           Verificaciones Recientes
         </CardTitle>
         <CardDescription>
-          Últimas 5 verificaciones realizadas - Haz clic para ver detalles
+          Últimas 5 verificaciones realizadas - Haz clic para ver análisis completo
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -581,12 +791,17 @@ export const RecentVerifications = ({ recentVerifications }: RecentVerifications
               >
                 <div className="flex items-center gap-3">
                   <Globe className="h-4 w-4 text-purple-600" />
-                  <span>{verification.url}</span>
+                  <span className="truncate max-w-xs">{verification.url}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {verification.trust_score && (
                     <Badge className={`px-2 py-1 text-xs ${getTrustScoreColor(verification.trust_score)}`}>
                       {verification.trust_score}/100
+                    </Badge>
+                  )}
+                  {verification.is_duplicate && (
+                    <Badge className="bg-orange-100 text-orange-800 text-xs">
+                      Duplicado
                     </Badge>
                   )}
                   <Badge variant={verification.status === 'valid' ? 'default' : 'destructive'}>
