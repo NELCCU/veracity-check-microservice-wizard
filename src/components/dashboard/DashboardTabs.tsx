@@ -5,10 +5,28 @@ import { EmailVerification } from "@/components/verification/EmailVerification";
 import { WebsiteVerification } from "@/components/verification/WebsiteVerification";
 import { CorporateVerification } from "@/components/verification/CorporateVerification";
 import { BatchVerification } from "@/components/verification/BatchVerification";
-import { VerificationDetail } from "@/components/verification/history/VerificationDetail";
+import { RecentVerifications } from "./RecentVerifications";
 import { Phone, Mail, Globe, Building2, FileSpreadsheet, History } from "lucide-react";
 
-export const DashboardTabs = () => {
+interface DashboardTabsProps {
+  recentVerifications: {
+    phones: any[];
+    emails: any[];
+    websites: any[];
+  };
+  advancedStats: any;
+  loadingAdvanced: boolean;
+  onRefreshStats: () => void;
+  onLoadAdvancedStats: () => void;
+}
+
+export const DashboardTabs = ({ 
+  recentVerifications, 
+  advancedStats, 
+  loadingAdvanced, 
+  onRefreshStats, 
+  onLoadAdvancedStats 
+}: DashboardTabsProps) => {
   return (
     <Tabs defaultValue="phone" className="w-full">
       <TabsList className="grid w-full grid-cols-6">
@@ -59,7 +77,10 @@ export const DashboardTabs = () => {
       </TabsContent>
       
       <TabsContent value="history" className="mt-6">
-        <VerificationDetail />
+        <RecentVerifications 
+          recentVerifications={recentVerifications}
+          onRefresh={onRefreshStats}
+        />
       </TabsContent>
     </Tabs>
   );
