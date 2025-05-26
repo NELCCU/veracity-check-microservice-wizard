@@ -1,4 +1,3 @@
-
 export interface PhoneVerificationResult {
   status: 'valid' | 'invalid';
   details: {
@@ -21,6 +20,35 @@ export interface EmailVerificationResult {
     smtpCheck?: boolean;
   };
   timestamp: string;
+}
+
+export interface SimilarSite {
+  id: string;
+  url: string;
+  similarity_score: number;
+  relationship_type: 'duplicate' | 'similar' | 'imitation' | 'suspicious';
+  analysis_details: {
+    content_similarity?: number;
+    visual_similarity?: number;
+    domain_similarity?: number;
+    structural_similarity?: number;
+  };
+}
+
+export interface DuplicateDetails {
+  original_verification_id?: string;
+  original_url?: string;
+  original_date?: string;
+  exact_match: boolean;
+  differences?: string[];
+}
+
+export interface ImitationAnalysis {
+  is_potential_imitation: boolean;
+  target_brand?: string;
+  imitation_score: number;
+  suspicious_elements: string[];
+  legitimate_indicators: string[];
 }
 
 export interface WebsiteVerificationResult {
@@ -98,6 +126,12 @@ export interface WebsiteVerificationResult {
     contentSecurityPolicy?: string;
     strictTransportSecurity?: string;
   };
+  // Nuevos campos para análisis avanzado
+  similarSites: SimilarSite[];
+  duplicateDetails: DuplicateDetails;
+  imitationAnalysis: ImitationAnalysis;
+  contentFingerprint?: string;
+  visualFingerprint?: string;
   timestamp: string;
 }
 

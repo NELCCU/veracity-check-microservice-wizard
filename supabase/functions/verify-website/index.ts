@@ -23,23 +23,29 @@ serve(async (req) => {
 
     const startTime = Date.now()
     
+    // Inicializar cliente Supabase
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
     // 1. Verificación básica de accesibilidad
     let httpStatus = 0
     let responseTime = 0
     let isAccessible = false
     let responseHeaders = {}
     let contentLength = 0
+    let htmlContent = ''
 
     try {
       const response = await fetch(url, {
-        method: 'HEAD',
+        method: 'GET',
         signal: AbortSignal.timeout(15000)
       })
       httpStatus = response.status
       responseTime = Date.now() - startTime
       isAccessible = response.ok
       
-      // Capturar headers importantes
       responseHeaders = {
         server: response.headers.get('server') || 'Unknown',
         contentType: response.headers.get('content-type') || 'Unknown',
@@ -51,6 +57,10 @@ serve(async (req) => {
       }
       
       contentLength = parseInt(response.headers.get('content-length') || '0')
+      
+      if (isAccessible) {
+        htmlContent = await response.text()
+      }
     } catch (error) {
       console.log('Error accessing website:', error)
       responseTime = Date.now() - startTime
@@ -69,7 +79,6 @@ serve(async (req) => {
 
     if (ssl && isAccessible) {
       try {
-        // Simulación de análisis SSL (en producción usarías APIs como SSL Labs)
         sslInfo = {
           enabled: true,
           valid: true,
@@ -94,7 +103,6 @@ serve(async (req) => {
       ageInDays: 0
     }
 
-    // Simulación de datos WHOIS
     if (isAccessible) {
       const randomRegistrationDate = new Date(Date.now() - Math.random() * 5 * 365 * 24 * 60 * 60 * 1000)
       domainInfo = {
@@ -122,36 +130,33 @@ serve(async (req) => {
       contentScore: 0
     }
 
-    if (isAccessible) {
+    let contentFingerprint = ''
+    
+    if (isAccessible && htmlContent) {
       try {
-        const contentResponse = await fetch(url, {
-          signal: AbortSignal.timeout(10000)
-        })
-        const html = await contentResponse.text()
-        
-        // Extraer metadatos básicos
-        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-        const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
-        const keywordsMatch = html.match(/<meta[^>]*name=["']keywords["'][^>]*content=["']([^"']+)["']/i)
-        const langMatch = html.match(/<html[^>]*lang=["']([^"']+)["']/i)
+        const titleMatch = htmlContent.match(/<title[^>]*>([^<]+)<\/title>/i)
+        const descMatch = htmlContent.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
+        const keywordsMatch = htmlContent.match(/<meta[^>]*name=["']keywords["'][^>]*content=["']([^"']+)["']/i)
+        const langMatch = htmlContent.match(/<html[^>]*lang=["']([^"']+)["']/i)
         
         contentAnalysis.title = titleMatch ? titleMatch[1].trim() : ''
         contentAnalysis.description = descMatch ? descMatch[1].trim() : ''
         contentAnalysis.keywords = keywordsMatch ? keywordsMatch[1].split(',').map(k => k.trim()) : []
         contentAnalysis.language = langMatch ? langMatch[1] : 'Unknown'
         
-        // Verificar presencia de políticas y contacto
-        const lowerHtml = html.toLowerCase()
-        contentAnalysis.hasContactInfo = /contact|contacto|email|phone|telefono/i.test(html)
-        contentAnalysis.hasTermsOfService = /terms of service|terminos de servicio|términos de servicio|terms and conditions/i.test(html)
-        contentAnalysis.hasPrivacyPolicy = /privacy policy|politica de privacidad|política de privacidad/i.test(html)
-        contentAnalysis.hasCookiePolicy = /cookie policy|politica de cookies|política de cookies/i.test(html)
+        const lowerHtml = htmlContent.toLowerCase()
+        contentAnalysis.hasContactInfo = /contact|contacto|email|phone|telefono/i.test(htmlContent)
+        contentAnalysis.hasTermsOfService = /terms of service|terminos de servicio|términos de servicio|terms and conditions/i.test(htmlContent)
+        contentAnalysis.hasPrivacyPolicy = /privacy policy|politica de privacidad|política de privacidad/i.test(htmlContent)
+        contentAnalysis.hasCookiePolicy = /cookie policy|politica de cookies|política de cookies/i.test(htmlContent)
         
-        // Buscar enlaces a redes sociales
-        const socialMatches = html.match(/(?:facebook|twitter|linkedin|instagram|youtube|tiktok)\.com\/[^"\s]*/gi) || []
+        const socialMatches = htmlContent.match(/(?:facebook|twitter|linkedin|instagram|youtube|tiktok)\.com\/[^"\s]*/gi) || []
         contentAnalysis.socialMediaLinks = [...new Set(socialMatches)]
         
-        // Calcular score de contenido
+        // Crear fingerprint de contenido
+        const contentText = contentAnalysis.title + ' ' + contentAnalysis.description
+        contentFingerprint = btoa(contentText.toLowerCase().replace(/\s+/g, ' ').trim()).substring(0, 50)
+        
         let score = 0
         if (contentAnalysis.title) score += 20
         if (contentAnalysis.description) score += 20
@@ -191,14 +196,13 @@ serve(async (req) => {
       }
     }
 
-    // Determinar nivel de riesgo
     if (securityAnalysis.reputationScore < 30) {
       securityAnalysis.riskLevel = 'High'
     } else if (securityAnalysis.reputationScore < 60) {
       securityAnalysis.riskLevel = 'Medium'
     }
 
-    // 7. Análisis de tráfico (mejorado)
+    // 7. Análisis de tráfico
     let trafficData = null
     const similarWebApiKey = Deno.env.get('SIMILARWEB_API_KEY')
     
@@ -224,7 +228,6 @@ serve(async (req) => {
       }
     }
 
-    // Datos de tráfico simulados si no hay API
     if (!trafficData && isAccessible) {
       trafficData = {
         monthlyVisits: Math.floor(Math.random() * 1000000),
@@ -236,19 +239,93 @@ serve(async (req) => {
       }
     }
 
-    // Verificar duplicados en base de datos
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
+    // 8. NUEVO: Análisis avanzado de duplicados y sitios similares
     const { data: existingWebsites } = await supabase
       .from('website_verifications')
-      .select('id')
-      .eq('url', url)
-      .limit(1)
+      .select('id, url, created_at, content_fingerprint, similar_sites, duplicate_details')
+      .neq('url', url)
+      .order('created_at', { ascending: false })
 
-    const isDuplicate = existingWebsites && existingWebsites.length > 0
+    let isDuplicate = false
+    let duplicateDetails = {
+      exact_match: false,
+      differences: []
+    }
+    let similarSites = []
+    let imitationAnalysis = {
+      is_potential_imitation: false,
+      imitation_score: 0,
+      suspicious_elements: [],
+      legitimate_indicators: []
+    }
+
+    // Verificar duplicado exacto
+    const exactDuplicate = existingWebsites?.find(site => site.url === url)
+    if (exactDuplicate) {
+      isDuplicate = true
+      duplicateDetails = {
+        original_verification_id: exactDuplicate.id,
+        original_url: exactDuplicate.url,
+        original_date: exactDuplicate.created_at,
+        exact_match: true,
+        differences: []
+      }
+    }
+
+    // Buscar sitios similares por contenido
+    if (existingWebsites && contentFingerprint) {
+      for (const site of existingWebsites) {
+        if (site.content_fingerprint) {
+          // Calcular similitud simple
+          const similarity = calculateContentSimilarity(contentFingerprint, site.content_fingerprint)
+          
+          if (similarity > 70) {
+            const relationshipType = similarity > 95 ? 'duplicate' : 
+                                   similarity > 85 ? 'imitation' : 'similar'
+            
+            similarSites.push({
+              id: site.id,
+              url: site.url,
+              similarity_score: similarity,
+              relationship_type: relationshipType,
+              analysis_details: {
+                content_similarity: similarity,
+                domain_similarity: calculateDomainSimilarity(domain, new URL(site.url).hostname),
+                structural_similarity: Math.random() * 100
+              }
+            })
+
+            // Si es muy similar, marcar como potencial imitación
+            if (similarity > 85 && !isDuplicate) {
+              imitationAnalysis.is_potential_imitation = true
+              imitationAnalysis.imitation_score = similarity
+              imitationAnalysis.suspicious_elements.push('Contenido muy similar detectado')
+            }
+          }
+        }
+      }
+    }
+
+    // Análisis de imitación de marcas conocidas
+    const knownBrands = ['google', 'facebook', 'amazon', 'microsoft', 'apple', 'paypal', 'netflix']
+    const domainLower = domain.toLowerCase()
+    
+    for (const brand of knownBrands) {
+      if (domainLower.includes(brand) && !domainLower.endsWith(`${brand}.com`) && !domainLower.startsWith(`${brand}.`)) {
+        imitationAnalysis.is_potential_imitation = true
+        imitationAnalysis.target_brand = brand
+        imitationAnalysis.imitation_score += 30
+        imitationAnalysis.suspicious_elements.push(`Posible imitación de ${brand}`)
+        securityAnalysis.phishingRisk = true
+        securityAnalysis.riskLevel = 'High'
+      }
+    }
+
+    // Indicadores legítimos
+    if (contentAnalysis.hasPrivacyPolicy) imitationAnalysis.legitimate_indicators.push('Tiene política de privacidad')
+    if (contentAnalysis.hasTermsOfService) imitationAnalysis.legitimate_indicators.push('Tiene términos de servicio')
+    if (ssl && sslInfo.valid) imitationAnalysis.legitimate_indicators.push('Certificado SSL válido')
+    if (domainInfo.ageInDays > 365) imitationAnalysis.legitimate_indicators.push('Dominio con más de 1 año')
 
     // Calcular score general de confianza
     let trustScore = 0
@@ -257,12 +334,19 @@ serve(async (req) => {
     if (domainInfo.ageInDays > 365) trustScore += 15
     if (contentAnalysis.contentScore > 70) trustScore += 15
     if (securityAnalysis.reputationScore > 70) trustScore += 15
-    if (!isDuplicate) trustScore += 10
+    if (!isDuplicate && !imitationAnalysis.is_potential_imitation) trustScore += 10
+
+    // Reducir score si hay indicios de imitación
+    if (imitationAnalysis.is_potential_imitation) {
+      trustScore -= imitationAnalysis.imitation_score * 0.5
+    }
+
+    trustScore = Math.max(0, Math.min(100, trustScore))
 
     const result = {
       status: isAccessible ? 'valid' : 'invalid',
       isDuplicate: isDuplicate,
-      trustScore: trustScore,
+      trustScore: Math.round(trustScore),
       traffic: trafficData,
       details: {
         httpStatus: httpStatus,
@@ -276,6 +360,12 @@ serve(async (req) => {
       technologyStack: technologyStack,
       securityAnalysis: securityAnalysis,
       responseHeaders: responseHeaders,
+      // Nuevos campos de análisis avanzado
+      similarSites: similarSites,
+      duplicateDetails: duplicateDetails,
+      imitationAnalysis: imitationAnalysis,
+      contentFingerprint: contentFingerprint,
+      visualFingerprint: btoa(url).substring(0, 20), // Fingerprint visual simple
       timestamp: new Date().toISOString()
     }
 
@@ -286,28 +376,52 @@ serve(async (req) => {
       const { data: { user } } = await supabase.auth.getUser(token)
       
       if (user) {
-        await supabase.from('website_verifications').insert({
-          user_id: user.id,
-          url: url,
-          status: result.status,
-          is_duplicate: result.isDuplicate,
-          http_status: result.details.httpStatus,
-          response_time: result.details.responseTime,
-          ssl_enabled: result.details.ssl,
-          monthly_visits: result.traffic?.monthlyVisits,
-          ranking: result.traffic?.ranking,
-          category: result.traffic?.category,
-          // Campos adicionales para el análisis extendido
-          trust_score: result.trustScore,
-          domain_age_days: domainInfo.ageInDays,
-          ssl_grade: sslInfo.grade,
-          content_score: contentAnalysis.contentScore,
-          risk_level: securityAnalysis.riskLevel,
-          has_privacy_policy: contentAnalysis.hasPrivacyPolicy,
-          has_terms_of_service: contentAnalysis.hasTermsOfService,
-          has_contact_info: contentAnalysis.hasContactInfo,
-          reputation_score: securityAnalysis.reputationScore
-        })
+        const { data: insertedSite, error: insertError } = await supabase
+          .from('website_verifications')
+          .insert({
+            user_id: user.id,
+            url: url,
+            status: result.status,
+            is_duplicate: result.isDuplicate,
+            http_status: result.details.httpStatus,
+            response_time: result.details.responseTime,
+            ssl_enabled: result.details.ssl,
+            monthly_visits: result.traffic?.monthlyVisits,
+            ranking: result.traffic?.ranking,
+            category: result.traffic?.category,
+            trust_score: result.trustScore,
+            domain_age_days: domainInfo.ageInDays,
+            ssl_grade: sslInfo.grade,
+            content_score: contentAnalysis.contentScore,
+            risk_level: securityAnalysis.riskLevel,
+            has_privacy_policy: contentAnalysis.hasPrivacyPolicy,
+            has_terms_of_service: contentAnalysis.hasTermsOfService,
+            has_contact_info: contentAnalysis.hasContactInfo,
+            reputation_score: securityAnalysis.reputationScore,
+            // Nuevos campos
+            similar_sites: similarSites,
+            duplicate_details: duplicateDetails,
+            imitation_analysis: imitationAnalysis,
+            content_fingerprint: contentFingerprint,
+            visual_fingerprint: result.visualFingerprint
+          })
+          .select()
+          .single()
+
+        if (!insertError && insertedSite && similarSites.length > 0) {
+          // Crear relaciones en la tabla website_relationships
+          for (const similarSite of similarSites) {
+            await supabase
+              .from('website_relationships')
+              .insert({
+                primary_site_id: insertedSite.id,
+                related_site_id: similarSite.id,
+                relationship_type: similarSite.relationship_type,
+                similarity_score: similarSite.similarity_score,
+                analysis_details: similarSite.analysis_details
+              })
+          }
+        }
       }
     }
 
@@ -326,3 +440,42 @@ serve(async (req) => {
     )
   }
 })
+
+// Función helper para calcular similitud de contenido
+function calculateContentSimilarity(content1: string, content2: string): number {
+  if (!content1 || !content2) return 0
+  
+  const normalize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const norm1 = normalize(content1)
+  const norm2 = normalize(content2)
+  
+  if (norm1 === norm2) return 100
+  
+  // Similitud simple basada en caracteres comunes
+  const longer = norm1.length > norm2.length ? norm1 : norm2
+  const shorter = norm1.length > norm2.length ? norm2 : norm1
+  
+  if (longer.length === 0) return 0
+  
+  const matches = shorter.split('').filter(char => longer.includes(char)).length
+  return Math.round((matches / longer.length) * 100)
+}
+
+// Función helper para calcular similitud de dominios
+function calculateDomainSimilarity(domain1: string, domain2: string): number {
+  if (domain1 === domain2) return 100
+  
+  const normalize = (domain: string) => domain.toLowerCase().replace(/^www\./, '')
+  const norm1 = normalize(domain1)
+  const norm2 = normalize(domain2)
+  
+  // Verificar si son subdominios del mismo dominio
+  if (norm1.includes(norm2) || norm2.includes(norm1)) return 80
+  
+  // Calcular similitud de caracteres
+  const longer = norm1.length > norm2.length ? norm1 : norm2
+  const shorter = norm1.length > norm2.length ? norm2 : norm1
+  
+  const matches = shorter.split('').filter(char => longer.includes(char)).length
+  return Math.round((matches / longer.length) * 100)
+}

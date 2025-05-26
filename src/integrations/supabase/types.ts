@@ -117,48 +117,108 @@ export type Database = {
         }
         Relationships: []
       }
+      website_relationships: {
+        Row: {
+          analysis_details: Json | null
+          created_at: string
+          id: string
+          primary_site_id: string | null
+          related_site_id: string | null
+          relationship_type: string
+          similarity_score: number | null
+        }
+        Insert: {
+          analysis_details?: Json | null
+          created_at?: string
+          id?: string
+          primary_site_id?: string | null
+          related_site_id?: string | null
+          relationship_type: string
+          similarity_score?: number | null
+        }
+        Update: {
+          analysis_details?: Json | null
+          created_at?: string
+          id?: string
+          primary_site_id?: string | null
+          related_site_id?: string | null
+          relationship_type?: string
+          similarity_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_relationships_primary_site_id_fkey"
+            columns: ["primary_site_id"]
+            isOneToOne: false
+            referencedRelation: "website_verifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_relationships_related_site_id_fkey"
+            columns: ["related_site_id"]
+            isOneToOne: false
+            referencedRelation: "website_verifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       website_verifications: {
         Row: {
           category: string | null
+          content_fingerprint: string | null
           created_at: string
+          duplicate_details: Json | null
           http_status: number | null
           id: string
+          imitation_analysis: Json | null
           is_duplicate: boolean | null
           monthly_visits: number | null
           ranking: number | null
           response_time: number | null
+          similar_sites: Json | null
           ssl_enabled: boolean | null
           status: string
           url: string
           user_id: string | null
+          visual_fingerprint: string | null
         }
         Insert: {
           category?: string | null
+          content_fingerprint?: string | null
           created_at?: string
+          duplicate_details?: Json | null
           http_status?: number | null
           id?: string
+          imitation_analysis?: Json | null
           is_duplicate?: boolean | null
           monthly_visits?: number | null
           ranking?: number | null
           response_time?: number | null
+          similar_sites?: Json | null
           ssl_enabled?: boolean | null
           status: string
           url: string
           user_id?: string | null
+          visual_fingerprint?: string | null
         }
         Update: {
           category?: string | null
+          content_fingerprint?: string | null
           created_at?: string
+          duplicate_details?: Json | null
           http_status?: number | null
           id?: string
+          imitation_analysis?: Json | null
           is_duplicate?: boolean | null
           monthly_visits?: number | null
           ranking?: number | null
           response_time?: number | null
+          similar_sites?: Json | null
           ssl_enabled?: boolean | null
           status?: string
           url?: string
           user_id?: string | null
+          visual_fingerprint?: string | null
         }
         Relationships: []
       }
@@ -167,7 +227,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_content_similarity: {
+        Args: { content1: string; content2: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
