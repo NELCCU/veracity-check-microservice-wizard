@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WebsiteVerificationResult } from "@/types/verification";
 import { BaseVerificationStorage } from "./BaseVerificationStorage";
@@ -11,7 +10,7 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
       console.log(`🌐 Guardando verificación de sitio web para usuario: ${user.id}, URL: ${url}`);
       console.log('📊 Datos del resultado:', result);
 
-      // Preparar los datos para insertar, asegurando que todos los campos estén mapeados correctamente
+      // Preparar los datos para insertar
       const insertData = {
         user_id: user.id,
         url: url,
@@ -23,7 +22,6 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
         monthly_visits: result.traffic?.monthlyVisits || null,
         ranking: result.traffic?.ranking || null,
         category: result.traffic?.category || null,
-        // Campos que estaban faltando
         trust_score: result.trustScore || 0,
         domain_age_days: result.domainInfo?.ageInDays || 0,
         ssl_grade: result.sslInfo?.grade || 'F',
@@ -33,7 +31,6 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
         has_terms_of_service: result.contentAnalysis?.hasTermsOfService || false,
         has_contact_info: result.contentAnalysis?.hasContactInfo || false,
         reputation_score: result.securityAnalysis?.reputationScore || 0,
-        // Campos JSON - asegurar que sean objetos válidos antes de stringify
         duplicate_details: result.duplicateDetails ? JSON.stringify(result.duplicateDetails) : JSON.stringify({}),
         similar_sites: result.similarSites ? JSON.stringify(result.similarSites) : JSON.stringify([]),
         imitation_analysis: result.imitationAnalysis ? JSON.stringify(result.imitationAnalysis) : JSON.stringify({}),
@@ -127,35 +124,38 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
       
       console.log(`🗑️ Eliminando verificación de sitio web - Caso: ${caseNumber}, ID parcial: ${shortId}`);
       
-      // Buscar el registro específico usando el ID parcial convertido a texto
-      const { data, error } = await supabase
+      // Obtener todos los registros del usuario para buscar coincidencias
+      const { data: allRecords, error: fetchError } = await supabase
         .from('website_verifications')
         .select('*')
         .eq('user_id', user.id)
-        .like('id::text', `${shortId.toLowerCase()}%`)
-        .limit(5);
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error(`❌ Error buscando en website_verifications:`, error);
-        throw error;
+      if (fetchError) {
+        console.error(`❌ Error obteniendo verificaciones de sitio web:`, fetchError);
+        throw fetchError;
       }
 
-      console.log(`📊 Registros encontrados en website_verifications:`, data?.length || 0);
+      console.log(`📊 Total de registros encontrados: ${allRecords?.length || 0}`);
       
-      if (!data || data.length === 0) {
+      // Buscar el registro que coincida con el ID parcial
+      const matchingRecord = allRecords?.find(record => 
+        record.id.toLowerCase().startsWith(shortId)
+      );
+
+      if (!matchingRecord) {
         console.log(`⚠️ No se encontró verificación de sitio web con el caso: ${caseNumber}`);
         return false;
       }
 
-      const record = data[0];
-      console.log(`✅ Registro encontrado:`, record.id);
+      console.log(`✅ Registro encontrado para eliminar:`, matchingRecord.id);
 
       // Eliminar el registro específico por ID completo
       const { data: deleteData, error: deleteError } = await supabase
         .from('website_verifications')
         .delete()
         .eq('user_id', user.id)
-        .eq('id', record.id)
+        .eq('id', matchingRecord.id)
         .select();
 
       if (deleteError) {

@@ -166,18 +166,27 @@ export type Database = {
         Row: {
           category: string | null
           content_fingerprint: string | null
+          content_score: number | null
           created_at: string
+          domain_age_days: number | null
           duplicate_details: Json | null
+          has_contact_info: boolean | null
+          has_privacy_policy: boolean | null
+          has_terms_of_service: boolean | null
           http_status: number | null
           id: string
           imitation_analysis: Json | null
           is_duplicate: boolean | null
           monthly_visits: number | null
           ranking: number | null
+          reputation_score: number | null
           response_time: number | null
+          risk_level: string | null
           similar_sites: Json | null
           ssl_enabled: boolean | null
+          ssl_grade: string | null
           status: string
+          trust_score: number | null
           url: string
           user_id: string | null
           visual_fingerprint: string | null
@@ -185,18 +194,27 @@ export type Database = {
         Insert: {
           category?: string | null
           content_fingerprint?: string | null
+          content_score?: number | null
           created_at?: string
+          domain_age_days?: number | null
           duplicate_details?: Json | null
+          has_contact_info?: boolean | null
+          has_privacy_policy?: boolean | null
+          has_terms_of_service?: boolean | null
           http_status?: number | null
           id?: string
           imitation_analysis?: Json | null
           is_duplicate?: boolean | null
           monthly_visits?: number | null
           ranking?: number | null
+          reputation_score?: number | null
           response_time?: number | null
+          risk_level?: string | null
           similar_sites?: Json | null
           ssl_enabled?: boolean | null
+          ssl_grade?: string | null
           status: string
+          trust_score?: number | null
           url: string
           user_id?: string | null
           visual_fingerprint?: string | null
@@ -204,18 +222,27 @@ export type Database = {
         Update: {
           category?: string | null
           content_fingerprint?: string | null
+          content_score?: number | null
           created_at?: string
+          domain_age_days?: number | null
           duplicate_details?: Json | null
+          has_contact_info?: boolean | null
+          has_privacy_policy?: boolean | null
+          has_terms_of_service?: boolean | null
           http_status?: number | null
           id?: string
           imitation_analysis?: Json | null
           is_duplicate?: boolean | null
           monthly_visits?: number | null
           ranking?: number | null
+          reputation_score?: number | null
           response_time?: number | null
+          risk_level?: string | null
           similar_sites?: Json | null
           ssl_enabled?: boolean | null
+          ssl_grade?: string | null
           status?: string
+          trust_score?: number | null
           url?: string
           user_id?: string | null
           visual_fingerprint?: string | null

@@ -97,35 +97,38 @@ export class EmailVerificationStorage extends BaseVerificationStorage {
       
       console.log(`🗑️ Eliminando verificación de email - Caso: ${caseNumber}, ID parcial: ${shortId}`);
       
-      // Buscar el registro específico usando el ID parcial convertido a texto
-      const { data, error } = await supabase
+      // Obtener todos los registros del usuario para buscar coincidencias
+      const { data: allRecords, error: fetchError } = await supabase
         .from('email_verifications')
         .select('*')
         .eq('user_id', user.id)
-        .like('id::text', `${shortId.toLowerCase()}%`)
-        .limit(5);
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error(`❌ Error buscando en email_verifications:`, error);
-        throw error;
+      if (fetchError) {
+        console.error(`❌ Error obteniendo verificaciones de email:`, fetchError);
+        throw fetchError;
       }
 
-      console.log(`📊 Registros encontrados en email_verifications:`, data?.length || 0);
+      console.log(`📊 Total de registros encontrados: ${allRecords?.length || 0}`);
       
-      if (!data || data.length === 0) {
+      // Buscar el registro que coincida con el ID parcial
+      const matchingRecord = allRecords?.find(record => 
+        record.id.toLowerCase().startsWith(shortId)
+      );
+
+      if (!matchingRecord) {
         console.log(`⚠️ No se encontró verificación de email con el caso: ${caseNumber}`);
         return false;
       }
 
-      const record = data[0];
-      console.log(`✅ Registro encontrado:`, record.id);
+      console.log(`✅ Registro encontrado para eliminar:`, matchingRecord.id);
 
       // Eliminar el registro específico por ID completo
       const { data: deleteData, error: deleteError } = await supabase
         .from('email_verifications')
         .delete()
         .eq('user_id', user.id)
-        .eq('id', record.id)
+        .eq('id', matchingRecord.id)
         .select();
 
       if (deleteError) {
@@ -142,6 +145,53 @@ export class EmailVerificationStorage extends BaseVerificationStorage {
     } catch (error) {
       console.error('💥 Error eliminando verificación de email:', error);
       throw error;
+    }
+  }
+
+  async getRecentEmailVerifications(limit: number = 10) {
+    try {
+      const user = await this.getAuthenticatedUser();
+      
+      const { data, error } = await supabase
+        .from('email_verifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('❌ Error obteniendo verificaciones de email:', error);
+        return [];
+      }
+
+      // Agregar número de caso a cada verificación
+      const dataWithCaseNumbers = (data || []).map(verification => ({
+        ...verification,
+        caseNumber: this.generateCaseNumberFromData(verification.id, verification.created_at)
+      }));
+
+      console.log(`📊 Verificaciones de email encontradas: ${dataWithCaseNumbers.length}`);
+      return dataWithCaseNumbers;
+    } catch (error) {
+      console.error('💥 Error obteniendo verificaciones de email:', error);
+      return [];
+    }
+  }
+
+  async getEmailVerificationStats(today: string) {
+    try {
+      const user = await this.getAuthenticatedUser();
+
+      const { count } = await supabase
+        .from('email_verifications')
+        .select('id', { count: 'exact' })
+        .eq('user_id', user.id)
+        .gte('created_at', today);
+
+      return count || 0;
+    } catch (error) {
+      console.error('Error obteniendo estadísticas de email:', error);
+      return 0;
     }
   }
 }
