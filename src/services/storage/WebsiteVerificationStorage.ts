@@ -116,11 +116,12 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
       
       console.log(`🗑️ Eliminando verificación de sitio web - Caso: ${caseNumber}, ID parcial: ${shortId}`);
       
+      // Usar LIKE con CAST para convertir UUID a texto
       const { data, error } = await supabase
         .from('website_verifications')
         .delete()
         .eq('user_id', user.id)
-        .ilike('id', `${shortId.toLowerCase()}%`)
+        .like('id::text', `${shortId.toLowerCase()}%`)
         .select();
 
       if (error) {

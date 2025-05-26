@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { EmailVerificationResult } from "@/types/verification";
 import { BaseVerificationStorage } from "./BaseVerificationStorage";
@@ -74,21 +75,31 @@ export class EmailVerificationStorage extends BaseVerificationStorage {
       const user = await this.getAuthenticatedUser();
       const { shortId } = this.parseCaseNumber(caseNumber);
       
+      console.log(`🗑️ Eliminando verificación de email - Caso: ${caseNumber}, ID parcial: ${shortId}`);
+      
+      // Usar LIKE con CAST para convertir UUID a texto
       const { data, error } = await supabase
         .from('email_verifications')
         .delete()
         .eq('user_id', user.id)
-        .ilike('id', `${shortId.toLowerCase()}%`)
+        .like('id::text', `${shortId.toLowerCase()}%`)
         .select();
 
       if (error) {
-        console.error('Error eliminando verificación de email:', error);
+        console.error('❌ Error eliminando verificación de email:', error);
         throw error;
       }
 
-      return data && data.length > 0;
+      const deleted = data && data.length > 0;
+      if (deleted) {
+        console.log(`✅ Verificación de email eliminada exitosamente - Caso: ${caseNumber}`, data[0]);
+      } else {
+        console.log(`⚠️ No se encontró verificación de email con el caso: ${caseNumber}`);
+      }
+
+      return deleted;
     } catch (error) {
-      console.error('Error eliminando verificación de email:', error);
+      console.error('💥 Error eliminando verificación de email:', error);
       throw error;
     }
   }
