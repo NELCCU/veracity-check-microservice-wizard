@@ -81,9 +81,8 @@ export class VerificationStorage {
       const caseNumber = this.generateCaseNumber();
       console.log(`Guardando verificación de sitio web - Caso: ${caseNumber}, URL: ${url}`);
 
-      // Preparar los datos para insertar, usando solo campos que existen en la tabla
+      // Preparar los datos para insertar, convirtiendo tipos personalizados a JSON
       const insertData = {
-        user_id: user.id,
         url: url,
         status: result.status,
         is_duplicate: result.isDuplicate,
@@ -93,12 +92,15 @@ export class VerificationStorage {
         monthly_visits: result.traffic?.monthlyVisits,
         ranking: result.traffic?.ranking,
         category: result.traffic?.category,
-        duplicate_details: result.duplicateDetails || {},
-        similar_sites: result.similarSites || [],
-        imitation_analysis: result.imitationAnalysis || {},
+        duplicate_details: JSON.parse(JSON.stringify(result.duplicateDetails || {})),
+        similar_sites: JSON.parse(JSON.stringify(result.similarSites || [])),
+        imitation_analysis: JSON.parse(JSON.stringify(result.imitationAnalysis || {})),
         content_fingerprint: result.contentFingerprint || '',
         visual_fingerprint: result.visualFingerprint || ''
-      };
+      } as any;
+
+      // Añadir user_id de forma explícita
+      (insertData as any).user_id = user.id;
 
       console.log('Datos a insertar:', insertData);
 
