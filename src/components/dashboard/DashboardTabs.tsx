@@ -1,90 +1,65 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Phone, Mail, Globe, Database, TrendingUp, History } from "lucide-react";
 import { PhoneVerification } from "@/components/verification/PhoneVerification";
 import { EmailVerification } from "@/components/verification/EmailVerification";
 import { WebsiteVerification } from "@/components/verification/WebsiteVerification";
+import { CorporateVerification } from "@/components/verification/CorporateVerification";
 import { BatchVerification } from "@/components/verification/BatchVerification";
-import { RecentVerifications } from "./RecentVerifications";
-import { AdvancedAnalytics } from "./AdvancedAnalytics";
+import { VerificationDetail } from "@/components/verification/history/VerificationDetail";
+import { Phone, Mail, Globe, Building2, FileSpreadsheet, History } from "lucide-react";
 
-interface DashboardTabsProps {
-  recentVerifications: {
-    phones: any[];
-    emails: any[];
-    websites: any[];
-  };
-  advancedStats: any;
-  loadingAdvanced: boolean;
-  onRefreshStats: () => void;
-  onLoadAdvancedStats: () => void;
-}
-
-export const DashboardTabs = ({ 
-  recentVerifications, 
-  advancedStats, 
-  loadingAdvanced, 
-  onRefreshStats, 
-  onLoadAdvancedStats 
-}: DashboardTabsProps) => {
+export const DashboardTabs = () => {
   return (
-    <Tabs defaultValue="phone" className="space-y-4">
+    <Tabs defaultValue="phone" className="w-full">
       <TabsList className="grid w-full grid-cols-6">
         <TabsTrigger value="phone" className="flex items-center gap-2">
           <Phone className="h-4 w-4" />
-          Teléfonos
+          Teléfono
         </TabsTrigger>
         <TabsTrigger value="email" className="flex items-center gap-2">
           <Mail className="h-4 w-4" />
-          Emails
+          Email
         </TabsTrigger>
         <TabsTrigger value="website" className="flex items-center gap-2">
           <Globe className="h-4 w-4" />
-          Sitios Web
+          Sitio Web
+        </TabsTrigger>
+        <TabsTrigger value="corporate" className="flex items-center gap-2">
+          <Building2 className="h-4 w-4" />
+          Corporativo
         </TabsTrigger>
         <TabsTrigger value="batch" className="flex items-center gap-2">
-          <Database className="h-4 w-4" />
-          Lote
-        </TabsTrigger>
-        <TabsTrigger value="analytics" className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4" />
-          Analytics
+          <FileSpreadsheet className="h-4 w-4" />
+          Lotes
         </TabsTrigger>
         <TabsTrigger value="history" className="flex items-center gap-2">
           <History className="h-4 w-4" />
           Historial
         </TabsTrigger>
       </TabsList>
-
-      <TabsContent value="phone">
-        <PhoneVerification onVerificationComplete={onRefreshStats} />
+      
+      <TabsContent value="phone" className="mt-6">
+        <PhoneVerification />
+      </TabsContent>
+      
+      <TabsContent value="email" className="mt-6">
+        <EmailVerification />
+      </TabsContent>
+      
+      <TabsContent value="website" className="mt-6">
+        <WebsiteVerification />
       </TabsContent>
 
-      <TabsContent value="email">
-        <EmailVerification onVerificationComplete={onRefreshStats} />
+      <TabsContent value="corporate" className="mt-6">
+        <CorporateVerification />
       </TabsContent>
-
-      <TabsContent value="website">
-        <WebsiteVerification onVerificationComplete={onRefreshStats} />
-      </TabsContent>
-
-      <TabsContent value="batch">
+      
+      <TabsContent value="batch" className="mt-6">
         <BatchVerification />
       </TabsContent>
-
-      <TabsContent value="analytics">
-        <AdvancedAnalytics 
-          advancedStats={advancedStats}
-          loadingAdvanced={loadingAdvanced}
-          onLoadAdvancedStats={onLoadAdvancedStats}
-        />
-      </TabsContent>
-
-      <TabsContent value="history">
-        <RecentVerifications 
-          recentVerifications={recentVerifications}
-          onRefresh={onRefreshStats}
-        />
+      
+      <TabsContent value="history" className="mt-6">
+        <VerificationDetail />
       </TabsContent>
     </Tabs>
   );
