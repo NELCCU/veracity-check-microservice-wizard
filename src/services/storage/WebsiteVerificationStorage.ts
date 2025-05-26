@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WebsiteVerificationResult } from "@/types/verification";
 import { BaseVerificationStorage } from "./BaseVerificationStorage";
@@ -114,64 +115,6 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
     } catch (error) {
       console.error('💥 Error obteniendo estadísticas de sitio web:', error);
       return 0;
-    }
-  }
-
-  async deleteWebsiteVerificationByCaseNumber(caseNumber: string) {
-    try {
-      const user = await this.getAuthenticatedUser();
-      const { shortId } = this.parseCaseNumber(caseNumber);
-      
-      console.log(`🗑️ Eliminando verificación de sitio web - Caso: ${caseNumber}, ID parcial: ${shortId}`);
-      
-      // Obtener todos los registros del usuario para buscar coincidencias
-      const { data: allRecords, error: fetchError } = await supabase
-        .from('website_verifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (fetchError) {
-        console.error(`❌ Error obteniendo verificaciones de sitio web:`, fetchError);
-        throw fetchError;
-      }
-
-      console.log(`📊 Total de registros encontrados: ${allRecords?.length || 0}`);
-      
-      // Buscar el registro que coincida con el ID parcial
-      const matchingRecord = allRecords?.find(record => 
-        record.id.toLowerCase().startsWith(shortId)
-      );
-
-      if (!matchingRecord) {
-        console.log(`⚠️ No se encontró verificación de sitio web con el caso: ${caseNumber}`);
-        return false;
-      }
-
-      console.log(`✅ Registro encontrado para eliminar:`, matchingRecord.id);
-
-      // Eliminar el registro específico por ID completo
-      const { data: deleteData, error: deleteError } = await supabase
-        .from('website_verifications')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('id', matchingRecord.id)
-        .select();
-
-      if (deleteError) {
-        console.error('❌ Error eliminando verificación de sitio web:', deleteError);
-        throw deleteError;
-      }
-
-      const deleted = deleteData && deleteData.length > 0;
-      if (deleted) {
-        console.log(`✅ Verificación de sitio web eliminada exitosamente - Caso: ${caseNumber}`, deleteData[0]);
-      }
-
-      return deleted;
-    } catch (error) {
-      console.error('💥 Error eliminando verificación de sitio web:', error);
-      throw error;
     }
   }
 }

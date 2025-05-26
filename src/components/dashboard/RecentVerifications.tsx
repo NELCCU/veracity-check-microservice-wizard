@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { History } from "lucide-react";
 import { VerificationListItem } from "@/components/verification/history/VerificationListItem";
 import { VerificationDetail } from "@/components/verification/history/VerificationDetail";
-import { verificationStorage } from "@/services/verificationStorage";
 
 interface RecentVerificationsProps {
   recentVerifications: {
@@ -15,7 +14,7 @@ interface RecentVerificationsProps {
   onRefresh?: () => void;
 }
 
-export const RecentVerifications = ({ recentVerifications: initialVerifications, onRefresh }: RecentVerificationsProps) => {
+export const RecentVerifications = ({ recentVerifications: initialVerifications }: RecentVerificationsProps) => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [recentVerifications, setRecentVerifications] = useState(initialVerifications);
@@ -39,17 +38,6 @@ export const RecentVerifications = ({ recentVerifications: initialVerifications,
     setViewMode('list');
   };
 
-  const handleVerificationDeleted = async () => {
-    // Refrescar la lista de verificaciones
-    try {
-      const updatedVerifications = await verificationStorage.getRecentVerifications();
-      setRecentVerifications(updatedVerifications);
-      onRefresh?.();
-    } catch (error) {
-      console.error('Error refrescando verificaciones:', error);
-    }
-  };
-
   // Función para combinar y ordenar todas las verificaciones por fecha
   const getAllVerificationsSorted = () => {
     const allVerifications = [
@@ -69,7 +57,6 @@ export const RecentVerifications = ({ recentVerifications: initialVerifications,
       <VerificationDetail 
         selectedItem={selectedItem} 
         onBackToList={handleBackToList}
-        onVerificationDeleted={handleVerificationDeleted}
       />
     );
   }
