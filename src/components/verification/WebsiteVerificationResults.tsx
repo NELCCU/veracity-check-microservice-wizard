@@ -55,6 +55,49 @@ export const WebsiteVerificationResults = ({ result }: WebsiteVerificationResult
     }
   };
 
+  const getSocialMediaName = (url: string) => {
+    if (url.includes('facebook.com')) return 'Facebook';
+    if (url.includes('twitter.com') || url.includes('x.com')) return 'Twitter/X';
+    if (url.includes('linkedin.com')) return 'LinkedIn';
+    if (url.includes('instagram.com')) return 'Instagram';
+    if (url.includes('youtube.com')) return 'YouTube';
+    if (url.includes('tiktok.com')) return 'TikTok';
+    if (url.includes('pinterest.com')) return 'Pinterest';
+    if (url.includes('github.com')) return 'GitHub';
+    return 'Red Social';
+  };
+
+  const getSocialMediaIcon = (url: string) => {
+    const iconClass = "h-4 w-4";
+    
+    if (url.includes('facebook.com')) {
+      return <div className={`${iconClass} bg-blue-600 rounded text-white flex items-center justify-center text-xs font-bold`}>f</div>;
+    }
+    if (url.includes('twitter.com') || url.includes('x.com')) {
+      return <div className={`${iconClass} bg-black rounded text-white flex items-center justify-center text-xs font-bold`}>X</div>;
+    }
+    if (url.includes('linkedin.com')) {
+      return <div className={`${iconClass} bg-blue-700 rounded text-white flex items-center justify-center text-xs font-bold`}>in</div>;
+    }
+    if (url.includes('instagram.com')) {
+      return <div className={`${iconClass} bg-gradient-to-r from-purple-500 to-pink-500 rounded text-white flex items-center justify-center text-xs font-bold`}>IG</div>;
+    }
+    if (url.includes('youtube.com')) {
+      return <div className={`${iconClass} bg-red-600 rounded text-white flex items-center justify-center text-xs font-bold`}>YT</div>;
+    }
+    if (url.includes('tiktok.com')) {
+      return <div className={`${iconClass} bg-black rounded text-white flex items-center justify-center text-xs font-bold`}>TT</div>;
+    }
+    if (url.includes('pinterest.com')) {
+      return <div className={`${iconClass} bg-red-500 rounded text-white flex items-center justify-center text-xs font-bold`}>P</div>;
+    }
+    if (url.includes('github.com')) {
+      return <div className={`${iconClass} bg-gray-800 rounded text-white flex items-center justify-center text-xs font-bold`}>GH</div>;
+    }
+    
+    return <Globe className={iconClass} />;
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({
@@ -517,10 +560,10 @@ export const WebsiteVerificationResults = ({ result }: WebsiteVerificationResult
                     <h4 className="font-medium mb-3">Redes Sociales Encontradas:</h4>
                     <div className="space-y-2">
                       {result.contentAnalysis.socialMediaLinks.map((link, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200">
+                        <div key={index} className="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
                           <div className="flex items-center gap-2">
-                            {/*getSocialMediaIcon(link)*/}
-                            <span className="text-sm font-medium">{/*getSocialMediaName(link)*/}</span>
+                            {getSocialMediaIcon(link)}
+                            <span className="text-sm font-medium">{getSocialMediaName(link)}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-500 max-w-48 truncate">{link}</span>
@@ -528,7 +571,17 @@ export const WebsiteVerificationResults = ({ result }: WebsiteVerificationResult
                               size="sm"
                               variant="outline"
                               className="h-7 w-7 p-0"
-                              onClick={() => window.open(link, '_blank')}
+                              onClick={() => copyToClipboard(link)}
+                              title="Copiar enlace"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 w-7 p-0"
+                              onClick={() => openUrl(link)}
+                              title="Abrir en nueva ventana"
                             >
                               <ExternalLink className="h-3 w-3" />
                             </Button>
@@ -536,6 +589,13 @@ export const WebsiteVerificationResults = ({ result }: WebsiteVerificationResult
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+                
+                {result.contentAnalysis.socialMediaLinks.length === 0 && (
+                  <div className="mt-4 text-center text-gray-500 py-4">
+                    <Globe className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">No se encontraron enlaces a redes sociales</p>
                   </div>
                 )}
               </CardContent>
