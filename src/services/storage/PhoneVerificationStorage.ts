@@ -96,12 +96,12 @@ export class PhoneVerificationStorage extends BaseVerificationStorage {
       
       console.log(`🗑️ Eliminando verificación de teléfono - Caso: ${caseNumber}, ID parcial: ${shortId}`);
       
-      // Buscar el registro específico usando el ID parcial
+      // Buscar el registro específico usando el ID parcial convertido a texto
       const { data, error } = await supabase
         .from('phone_verifications')
         .select('*')
         .eq('user_id', user.id)
-        .ilike('id::text', `${shortId.toLowerCase()}%`)
+        .like('id::text', `${shortId.toLowerCase()}%`)
         .limit(5);
 
       if (error) {
