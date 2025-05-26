@@ -1,6 +1,5 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -103,34 +102,8 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     }
 
-    // Save to database
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    const authHeader = req.headers.get('Authorization')
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '')
-      const { data: { user } } = await supabase.auth.getUser(token)
-      
-      if (user) {
-        const { error: dbError } = await supabase.from('phone_verifications').insert({
-          user_id: user.id,
-          phone_number: phone,
-          status: result.status,
-          country: result.details.country,
-          carrier: result.details.carrier,
-          line_type: result.details.lineType,
-          is_active: result.details.isActive
-        })
-        
-        if (dbError) {
-          console.error('Database save error:', dbError)
-          // No lanzar error aquí, la verificación fue exitosa
-        }
-      }
-    }
+    // NOTE: Removed database saving from edge function to prevent duplicates
+    // The frontend hook will handle saving to the database
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
