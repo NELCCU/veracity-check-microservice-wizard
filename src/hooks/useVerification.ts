@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { phoneService } from '@/services/phoneService';
 import { emailService } from '@/services/emailService';
 import { websiteService } from '@/services/websiteService';
+import { verificationStorage } from '@/services/verificationStorage';
 import { errorHandlingService, ApiError } from '@/services/errorHandlingService';
 import { PhoneVerificationResult, EmailVerificationResult, WebsiteVerificationResult } from '@/types/verification';
 
@@ -17,12 +18,21 @@ export const useVerification = () => {
     setLastError(null);
     
     try {
+      console.log(`Iniciando verificación de teléfono: ${phone}`);
       const result = await phoneService.verifyPhone(phone);
+      
+      if (result) {
+        console.log('Resultado de verificación obtenido, guardando en historial...');
+        await verificationStorage.savePhoneVerification(phone, result);
+        console.log('Verificación de teléfono guardada exitosamente en historial');
+      }
+      
       return result;
     } catch (err) {
       const apiError = errorHandlingService.handleError(err, 'numverify');
       setError(apiError.message);
       setLastError(apiError);
+      console.error('Error en verificación de teléfono:', apiError);
       return null;
     } finally {
       setIsLoading(false);
@@ -35,12 +45,21 @@ export const useVerification = () => {
     setLastError(null);
     
     try {
+      console.log(`Iniciando verificación de email: ${email}`);
       const result = await emailService.verifyEmail(email);
+      
+      if (result) {
+        console.log('Resultado de verificación obtenido, guardando en historial...');
+        await verificationStorage.saveEmailVerification(email, result);
+        console.log('Verificación de email guardada exitosamente en historial');
+      }
+      
       return result;
     } catch (err) {
       const apiError = errorHandlingService.handleError(err, 'zerobounce');
       setError(apiError.message);
       setLastError(apiError);
+      console.error('Error en verificación de email:', apiError);
       return null;
     } finally {
       setIsLoading(false);
@@ -53,12 +72,21 @@ export const useVerification = () => {
     setLastError(null);
     
     try {
+      console.log(`Iniciando verificación de sitio web: ${url}`);
       const result = await websiteService.verifyWebsite(url);
+      
+      if (result) {
+        console.log('Resultado de verificación obtenido, guardando en historial...');
+        await verificationStorage.saveWebsiteVerification(url, result);
+        console.log('Verificación de sitio web guardada exitosamente en historial');
+      }
+      
       return result;
     } catch (err) {
       const apiError = errorHandlingService.handleError(err, 'similarweb');
       setError(apiError.message);
       setLastError(apiError);
+      console.error('Error en verificación de sitio web:', apiError);
       return null;
     } finally {
       setIsLoading(false);

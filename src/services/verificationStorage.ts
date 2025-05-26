@@ -3,10 +3,20 @@ import { PhoneVerificationResult, EmailVerificationResult, WebsiteVerificationRe
 
 export class VerificationStorage {
   
+  // Generar número de caso único
+  private generateCaseNumber(): string {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `CASE-${timestamp}-${random}`;
+  }
+
   async savePhoneVerification(phone: string, result: PhoneVerificationResult) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
+
+      const caseNumber = this.generateCaseNumber();
+      console.log(`Guardando verificación de teléfono - Caso: ${caseNumber}`);
 
       const { error } = await supabase
         .from('phone_verifications')
@@ -20,10 +30,14 @@ export class VerificationStorage {
           is_active: result.details.isActive
         });
 
-      if (error) throw error;
-      console.log('Verificación de teléfono guardada en Supabase');
+      if (error) {
+        console.error('Error guardando verificación de teléfono:', error);
+        throw error;
+      }
+      console.log(`Verificación de teléfono guardada exitosamente - Caso: ${caseNumber}`);
     } catch (error) {
       console.error('Error guardando verificación de teléfono:', error);
+      throw error;
     }
   }
 
@@ -31,6 +45,9 @@ export class VerificationStorage {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
+
+      const caseNumber = this.generateCaseNumber();
+      console.log(`Guardando verificación de email - Caso: ${caseNumber}`);
 
       const { error } = await supabase
         .from('email_verifications')
@@ -45,10 +62,14 @@ export class VerificationStorage {
           smtp_check: result.details.smtpCheck
         });
 
-      if (error) throw error;
-      console.log('Verificación de email guardada en Supabase');
+      if (error) {
+        console.error('Error guardando verificación de email:', error);
+        throw error;
+      }
+      console.log(`Verificación de email guardada exitosamente - Caso: ${caseNumber}`);
     } catch (error) {
       console.error('Error guardando verificación de email:', error);
+      throw error;
     }
   }
 
@@ -57,30 +78,44 @@ export class VerificationStorage {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      const { error } = await supabase
-        .from('website_verifications')
-        .insert({
-          user_id: user.id,
-          url: url,
-          status: result.status,
-          is_duplicate: result.isDuplicate,
-          http_status: result.details.httpStatus,
-          response_time: result.details.responseTime,
-          ssl_enabled: result.details.ssl,
-          monthly_visits: result.traffic?.monthlyVisits,
-          ranking: result.traffic?.ranking,
-          category: result.traffic?.category,
-          duplicate_details: result.duplicateDetails || {},
-          similar_sites: result.similarSites || [],
-          imitation_analysis: result.imitationAnalysis || {},
-          content_fingerprint: result.contentAnalysis?.title || '',
-          visual_fingerprint: result.domainInfo?.domain || ''
-        } as any);
+      const caseNumber = this.generateCaseNumber();
+      console.log(`Guardando verificación de sitio web - Caso: ${caseNumber}, URL: ${url}`);
 
-      if (error) throw error;
-      console.log('Verificación de sitio web guardada en Supabase');
+      // Preparar los datos para insertar, usando solo campos que existen en la tabla
+      const insertData = {
+        user_id: user.id,
+        url: url,
+        status: result.status,
+        is_duplicate: result.isDuplicate,
+        http_status: result.details.httpStatus,
+        response_time: result.details.responseTime,
+        ssl_enabled: result.details.ssl,
+        monthly_visits: result.traffic?.monthlyVisits,
+        ranking: result.traffic?.ranking,
+        category: result.traffic?.category,
+        duplicate_details: result.duplicateDetails || {},
+        similar_sites: result.similarSites || [],
+        imitation_analysis: result.imitationAnalysis || {},
+        content_fingerprint: result.contentFingerprint || '',
+        visual_fingerprint: result.visualFingerprint || ''
+      };
+
+      console.log('Datos a insertar:', insertData);
+
+      const { data, error } = await supabase
+        .from('website_verifications')
+        .insert(insertData)
+        .select();
+
+      if (error) {
+        console.error('Error detallado al guardar verificación de sitio web:', error);
+        throw error;
+      }
+
+      console.log(`Verificación de sitio web guardada exitosamente - Caso: ${caseNumber}`, data);
     } catch (error) {
       console.error('Error guardando verificación de sitio web:', error);
+      throw error;
     }
   }
 
