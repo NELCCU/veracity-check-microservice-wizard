@@ -8,29 +8,37 @@ export class EmailVerificationStorage extends BaseVerificationStorage {
   async saveEmailVerification(email: string, result: EmailVerificationResult) {
     try {
       const user = await this.getAuthenticatedUser();
-      const caseNumber = this.generateCaseNumber();
-      console.log(`Guardando verificación de email - Caso: ${caseNumber}`);
+      console.log(`📧 Guardando verificación de email para usuario: ${user.id}`);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('email_verifications')
         .insert({
           user_id: user.id,
           email: email,
           status: result.status,
-          domain: result.details.domain,
-          is_deliverable: result.details.isDeliverable,
-          is_disposable: result.details.isDisposable,
-          mx_records: result.details.mxRecords,
-          smtp_check: result.details.smtpCheck
-        });
+          domain: result.details.domain || null,
+          is_deliverable: result.details.isDeliverable || null,
+          is_disposable: result.details.isDisposable || null,
+          mx_records: result.details.mxRecords || null,
+          smtp_check: result.details.smtpCheck || null
+        })
+        .select()
+        .single();
 
       if (error) {
-        console.error('Error guardando verificación de email:', error);
+        console.error('❌ Error guardando verificación de email:', error);
         throw error;
       }
-      console.log(`Verificación de email guardada exitosamente - Caso: ${caseNumber}`);
+
+      if (data) {
+        const caseNumber = this.generateCaseNumberFromData(data.id, data.created_at);
+        console.log(`✅ Verificación de email guardada exitosamente - Caso: ${caseNumber}`, data);
+        return { ...data, caseNumber };
+      }
+
+      return data;
     } catch (error) {
-      console.error('Error guardando verificación de email:', error);
+      console.error('💥 Error guardando verificación de email:', error);
       throw error;
     }
   }
@@ -39,16 +47,28 @@ export class EmailVerificationStorage extends BaseVerificationStorage {
     try {
       const user = await this.getAuthenticatedUser();
       
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('email_verifications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      return data || [];
+      if (error) {
+        console.error('❌ Error obteniendo verificaciones de email:', error);
+        return [];
+      }
+
+      // Agregar número de caso a cada verificación
+      const dataWithCaseNumbers = (data || []).map(verification => ({
+        ...verification,
+        caseNumber: this.generateCaseNumberFromData(verification.id, verification.created_at)
+      }));
+
+      console.log(`📊 Verificaciones de email encontradas: ${dataWithCaseNumbers.length}`);
+      return dataWithCaseNumbers;
     } catch (error) {
-      console.error('Error obteniendo verificaciones de email:', error);
+      console.error('💥 Error obteniendo verificaciones de email:', error);
       return [];
     }
   }

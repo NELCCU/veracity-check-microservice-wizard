@@ -8,28 +8,36 @@ export class PhoneVerificationStorage extends BaseVerificationStorage {
   async savePhoneVerification(phone: string, result: PhoneVerificationResult) {
     try {
       const user = await this.getAuthenticatedUser();
-      const caseNumber = this.generateCaseNumber();
-      console.log(`Guardando verificación de teléfono - Caso: ${caseNumber}`);
+      console.log(`📞 Guardando verificación de teléfono para usuario: ${user.id}`);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('phone_verifications')
         .insert({
           user_id: user.id,
           phone_number: phone,
           status: result.status,
-          country: result.details.country,
-          carrier: result.details.carrier,
-          line_type: result.details.lineType,
-          is_active: result.details.isActive
-        });
+          country: result.details.country || null,
+          carrier: result.details.carrier || null,
+          line_type: result.details.lineType || null,
+          is_active: result.details.isActive || null
+        })
+        .select()
+        .single();
 
       if (error) {
-        console.error('Error guardando verificación de teléfono:', error);
+        console.error('❌ Error guardando verificación de teléfono:', error);
         throw error;
       }
-      console.log(`Verificación de teléfono guardada exitosamente - Caso: ${caseNumber}`);
+
+      if (data) {
+        const caseNumber = this.generateCaseNumberFromData(data.id, data.created_at);
+        console.log(`✅ Verificación de teléfono guardada exitosamente - Caso: ${caseNumber}`, data);
+        return { ...data, caseNumber };
+      }
+
+      return data;
     } catch (error) {
-      console.error('Error guardando verificación de teléfono:', error);
+      console.error('💥 Error guardando verificación de teléfono:', error);
       throw error;
     }
   }
@@ -38,16 +46,28 @@ export class PhoneVerificationStorage extends BaseVerificationStorage {
     try {
       const user = await this.getAuthenticatedUser();
       
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('phone_verifications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      return data || [];
+      if (error) {
+        console.error('❌ Error obteniendo verificaciones de teléfono:', error);
+        return [];
+      }
+
+      // Agregar número de caso a cada verificación
+      const dataWithCaseNumbers = (data || []).map(verification => ({
+        ...verification,
+        caseNumber: this.generateCaseNumberFromData(verification.id, verification.created_at)
+      }));
+
+      console.log(`📊 Verificaciones de teléfono encontradas: ${dataWithCaseNumbers.length}`);
+      return dataWithCaseNumbers;
     } catch (error) {
-      console.error('Error obteniendo verificaciones de teléfono:', error);
+      console.error('💥 Error obteniendo verificaciones de teléfono:', error);
       return [];
     }
   }

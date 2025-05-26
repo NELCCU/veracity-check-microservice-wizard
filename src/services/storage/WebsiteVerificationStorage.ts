@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WebsiteVerificationResult } from "@/types/verification";
 import { BaseVerificationStorage } from "./BaseVerificationStorage";
@@ -8,8 +7,7 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
   async saveWebsiteVerification(url: string, result: WebsiteVerificationResult) {
     try {
       const user = await this.getAuthenticatedUser();
-      const caseNumber = this.generateCaseNumber();
-      console.log(`🔍 Guardando verificación de sitio web - Caso: ${caseNumber}, URL: ${url}`);
+      console.log(`🌐 Guardando verificación de sitio web para usuario: ${user.id}, URL: ${url}`);
       console.log('📊 Datos del resultado:', result);
 
       // Preparar los datos para insertar, asegurando que todos los campos JSON sean válidos
@@ -36,29 +34,23 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
       const { data, error } = await supabase
         .from('website_verifications')
         .insert([insertData])
-        .select();
+        .select()
+        .single();
 
       if (error) {
         console.error('❌ Error detallado al guardar verificación de sitio web:', error);
-        console.error('🔍 Detalles del error:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
         throw new Error(`Error al guardar en base de datos: ${error.message}`);
       }
 
-      if (!data || data.length === 0) {
-        console.error('❌ No se recibieron datos después de la inserción');
-        throw new Error('No se pudo confirmar el guardado de la verificación');
+      if (data) {
+        const caseNumber = this.generateCaseNumberFromData(data.id, data.created_at);
+        console.log(`✅ Verificación de sitio web guardada exitosamente - Caso: ${caseNumber}`, data);
+        return { ...data, caseNumber };
       }
 
-      console.log(`✅ Verificación de sitio web guardada exitosamente - Caso: ${caseNumber}`, data[0]);
-      return data[0];
+      return data;
     } catch (error) {
       console.error('💥 Error crítico guardando verificación de sitio web:', error);
-      console.error('🔍 Stack trace:', error.stack);
       throw error;
     }
   }
@@ -77,11 +69,17 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
 
       if (error) {
         console.error('❌ Error obteniendo verificaciones de sitio web:', error);
-        throw error;
+        return [];
       }
 
-      console.log(`📊 Verificaciones encontradas: ${data?.length || 0}`);
-      return data || [];
+      // Agregar número de caso a cada verificación
+      const dataWithCaseNumbers = (data || []).map(verification => ({
+        ...verification,
+        caseNumber: this.generateCaseNumberFromData(verification.id, verification.created_at)
+      }));
+
+      console.log(`📊 Verificaciones de sitio web encontradas: ${dataWithCaseNumbers.length}`);
+      return dataWithCaseNumbers;
     } catch (error) {
       console.error('💥 Error obteniendo verificaciones de sitio web:', error);
       return [];

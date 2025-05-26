@@ -3,11 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 
 export abstract class BaseVerificationStorage {
   
-  // Generar número de caso único
+  // Generar número de caso único con formato YYMMDD-SHORTID
   protected generateCaseNumber(): string {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `CASE-${timestamp}-${random}`;
+    const now = new Date();
+    const year = now.getFullYear().toString().slice(-2);
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const dateStr = `${year}${month}${day}`;
+    
+    const random = Math.floor(Math.random() * 0xFFFFFFFF).toString(16).toUpperCase().padStart(8, '0');
+    return `${dateStr}-${random}`;
   }
 
   protected async getAuthenticatedUser() {
@@ -20,7 +25,10 @@ export abstract class BaseVerificationStorage {
   protected generateCaseNumberFromData(id: string, createdAt: string): string {
     const shortId = id.substring(0, 8).toUpperCase();
     const date = new Date(createdAt);
-    const dateStr = date.toISOString().slice(2, 10).replace(/-/g, '');
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const dateStr = `${year}${month}${day}`;
     return `${dateStr}-${shortId}`;
   }
 
