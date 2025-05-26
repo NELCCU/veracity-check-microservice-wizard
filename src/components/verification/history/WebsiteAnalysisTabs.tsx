@@ -27,6 +27,23 @@ interface WebsiteAnalysisTabsProps {
 export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) => {
   const { toast } = useToast();
 
+  // Parse JSON fields safely
+  const parseJsonField = (field: any, defaultValue: any) => {
+    if (typeof field === 'string') {
+      try {
+        return JSON.parse(field);
+      } catch (e) {
+        console.warn('Error parsing JSON field:', e);
+        return defaultValue;
+      }
+    }
+    return field || defaultValue;
+  };
+
+  const similarSites = parseJsonField(verification.similar_sites, []);
+  const duplicateDetails = parseJsonField(verification.duplicate_details, {});
+  const imitationAnalysis = parseJsonField(verification.imitation_analysis, {});
+
   const getTrustScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600 bg-green-50";
     if (score >= 60) return "text-yellow-600 bg-yellow-50";
@@ -71,7 +88,7 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
         <TabsTrigger value="duplicates">
           <div className="flex items-center gap-1">
             Duplicados
-            {(verification.is_duplicate || (verification.similar_sites && verification.similar_sites.length > 0)) && (
+            {(verification.is_duplicate || (similarSites && similarSites.length > 0)) && (
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
             )}
           </div>
@@ -130,20 +147,20 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
                   Sitio Duplicado Detectado
                 </h4>
                 <div className="text-sm space-y-2">
-                  {verification.duplicate_details?.exact_match && (
+                  {duplicateDetails?.exact_match && (
                     <div>
                       <span className="font-medium">Tipo:</span> Coincidencia exacta
                     </div>
                   )}
-                  {verification.duplicate_details?.original_url && (
+                  {duplicateDetails?.original_url && (
                     <div className="flex items-center justify-between p-2 bg-white rounded border">
-                      <span className="text-xs break-all">{verification.duplicate_details.original_url}</span>
+                      <span className="text-xs break-all">{duplicateDetails.original_url}</span>
                       <div className="flex gap-1">
                         <Button
                           size="sm"
                           variant="outline"
                           className="h-6 w-6 p-0"
-                          onClick={() => copyToClipboard(verification.duplicate_details.original_url)}
+                          onClick={() => copyToClipboard(duplicateDetails.original_url)}
                         >
                           <Copy className="h-3 w-3" />
                         </Button>
@@ -151,7 +168,7 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
                           size="sm"
                           variant="outline"
                           className="h-6 w-6 p-0"
-                          onClick={() => openUrl(verification.duplicate_details.original_url)}
+                          onClick={() => openUrl(duplicateDetails.original_url)}
                         >
                           <ExternalLink className="h-3 w-3" />
                         </Button>
@@ -162,14 +179,14 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
               </div>
             )}
 
-            {verification.similar_sites && verification.similar_sites.length > 0 ? (
+            {similarSites && similarSites.length > 0 ? (
               <div>
                 <h4 className="font-medium mb-3 flex items-center gap-2">
                   <Link2 className="h-4 w-4 text-blue-600" />
-                  Sitios Similares Encontrados ({verification.similar_sites.length})
+                  Sitios Similares Encontrados ({similarSites.length})
                 </h4>
                 <div className="space-y-3">
-                  {verification.similar_sites.map((site: any, index: number) => (
+                  {similarSites.map((site: any, index: number) => (
                     <div key={index} className="p-3 bg-white rounded-lg border border-gray-200">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -214,6 +231,25 @@ export const WebsiteAnalysisTabs = ({ verification }: WebsiteAnalysisTabsProps) 
                 <Globe className="h-12 w-12 mx-auto mb-2 text-gray-300" />
                 <p>No se encontraron sitios duplicados o similares</p>
                 <p className="text-sm">Este sitio web parece ser único en nuestra base de datos</p>
+              </div>
+            )}
+
+            {imitationAnalysis?.is_potential_imitation && (
+              <div className="p-4 bg-orange-100 rounded-lg">
+                <h4 className="font-medium mb-2 flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-orange-600" />
+                  Análisis de Imitación
+                </h4>
+                <div className="text-sm space-y-2">
+                  <div>
+                    <span className="font-medium">Score de imitación:</span> {imitationAnalysis.imitation_score}/100
+                  </div>
+                  {imitationAnalysis.target_brand && (
+                    <div>
+                      <span className="font-medium">Posible marca imitada:</span> {imitationAnalysis.target_brand}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>

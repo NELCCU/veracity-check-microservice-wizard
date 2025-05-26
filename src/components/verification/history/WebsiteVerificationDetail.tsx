@@ -8,6 +8,22 @@ interface WebsiteVerificationDetailProps {
 }
 
 export const WebsiteVerificationDetail = ({ verification }: WebsiteVerificationDetailProps) => {
+  // Parse JSON fields safely
+  const parseJsonField = (field: any, defaultValue: any) => {
+    if (typeof field === 'string') {
+      try {
+        return JSON.parse(field);
+      } catch (e) {
+        console.warn('Error parsing JSON field:', e);
+        return defaultValue;
+      }
+    }
+    return field || defaultValue;
+  };
+
+  const duplicateDetails = parseJsonField(verification.duplicate_details, {});
+  const imitationAnalysis = parseJsonField(verification.imitation_analysis, {});
+
   return (
     <div className="space-y-4">
       {verification.is_duplicate && (
@@ -15,24 +31,24 @@ export const WebsiteVerificationDetail = ({ verification }: WebsiteVerificationD
           <AlertTriangle className="h-4 w-4 text-orange-600" />
           <AlertDescription className="text-orange-800">
             <strong>Sitio Duplicado:</strong> Este sitio web ya ha sido verificado anteriormente.
-            {verification.duplicate_details?.original_date && (
+            {duplicateDetails?.original_date && (
               <div className="mt-2 text-sm">
-                Verificación original: {new Date(verification.duplicate_details.original_date).toLocaleDateString()}
+                Verificación original: {new Date(duplicateDetails.original_date).toLocaleDateString()}
               </div>
             )}
           </AlertDescription>
         </Alert>
       )}
 
-      {verification.imitation_analysis?.is_potential_imitation && (
+      {imitationAnalysis?.is_potential_imitation && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             <strong>Posible Imitación Detectada:</strong> Este sitio presenta características que sugieren que podría ser una imitación.
-            {verification.imitation_analysis.target_brand && (
-              <div className="mt-1">Posible imitación de: <strong>{verification.imitation_analysis.target_brand}</strong></div>
+            {imitationAnalysis.target_brand && (
+              <div className="mt-1">Posible imitación de: <strong>{imitationAnalysis.target_brand}</strong></div>
             )}
-            <div className="mt-1">Score de imitación: <strong>{verification.imitation_analysis.imitation_score}/100</strong></div>
+            <div className="mt-1">Score de imitación: <strong>{imitationAnalysis.imitation_score}/100</strong></div>
           </AlertDescription>
         </Alert>
       )}
