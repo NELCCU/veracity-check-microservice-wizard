@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { PhoneVerificationResult, EmailVerificationResult, WebsiteVerificationResult } from "@/types/verification";
 
@@ -71,13 +70,12 @@ export class VerificationStorage {
           monthly_visits: result.traffic?.monthlyVisits,
           ranking: result.traffic?.ranking,
           category: result.traffic?.category,
-          // Guardar todos los datos del análisis completo
           duplicate_details: result.duplicateDetails || {},
           similar_sites: result.similarSites || [],
           imitation_analysis: result.imitationAnalysis || {},
           content_fingerprint: result.contentAnalysis?.title || '',
           visual_fingerprint: result.domainInfo?.domain || ''
-        });
+        } as any);
 
       if (error) throw error;
       console.log('Verificación de sitio web guardada en Supabase');
