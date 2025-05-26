@@ -11,7 +11,7 @@ export const Dashboard = () => {
     queryKey: ['verification-stats'],
     queryFn: () => optimizedVerificationStorage.getVerificationStats(),
     staleTime: 2 * 60 * 1000, // 2 minutos
-    cacheTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 5 * 60 * 1000, // 5 minutos (antes cacheTime)
   });
 
   // Cargar verificaciones recientes con cache optimizado
@@ -19,7 +19,7 @@ export const Dashboard = () => {
     queryKey: ['recent-verifications'],
     queryFn: () => optimizedVerificationStorage.getRecentVerifications(10),
     staleTime: 1 * 60 * 1000, // 1 minuto
-    cacheTime: 3 * 60 * 1000, // 3 minutos
+    gcTime: 3 * 60 * 1000, // 3 minutos (antes cacheTime)
   });
 
   // Cargar estadísticas avanzadas
@@ -27,7 +27,7 @@ export const Dashboard = () => {
     queryKey: ['advanced-stats'],
     queryFn: () => dashboardService.getAdvancedStats(),
     staleTime: 5 * 60 * 1000, // 5 minutos
-    cacheTime: 10 * 60 * 1000, // 10 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos (antes cacheTime)
   });
 
   const handleRefreshStats = () => {
