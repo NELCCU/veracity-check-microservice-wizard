@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +9,7 @@ import { validatePhone, validateEmail, validateUrl, formatPhone, formatEmail, fo
 import { BatchVerificationResult } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
 import { batchService } from "@/services/batchService";
+import { verificationStorage } from "@/services/verificationStorage";
 
 export const BatchVerification = () => {
   const [phones, setPhones] = useState("");
@@ -51,6 +51,68 @@ export const BatchVerification = () => {
       };
 
       const batchResult = await batchService.verifyBatch(batchRequest);
+      
+      // Guardar cada resultado en el historial después de recibir la respuesta
+      try {
+        console.log('💾 Guardando resultados de verificación en lote en historial...');
+        
+        // Guardar teléfonos
+        if (batchResult.phones && phoneList.length > 0) {
+          for (let i = 0; i < phoneList.length; i++) {
+            const phone = phoneList[i];
+            const result = batchResult.phones[i];
+            const phoneResult = {
+              country: result.details.country,
+              carrier: result.details.carrier,
+              lineType: result.details.lineType,
+              isActive: result.details.isActive,
+              status: result.status
+            };
+            await verificationStorage.savePhoneVerification(phone, phoneResult);
+          }
+        }
+
+        // Guardar emails
+        if (batchResult.emails && emailList.length > 0) {
+          for (let i = 0; i < emailList.length; i++) {
+            const email = emailList[i];
+            const result = batchResult.emails[i];
+            const emailResult = {
+              domain: result.details.domain,
+              isDeliverable: result.details.isDeliverable,
+              isDisposable: result.details.isDisposable,
+              mxRecords: result.details.mxRecords,
+              smtpCheck: result.details.smtpCheck,
+              status: result.status
+            };
+            await verificationStorage.saveEmailVerification(email, emailResult);
+          }
+        }
+
+        // Guardar sitios web
+        if (batchResult.websites && websiteList.length > 0) {
+          for (let i = 0; i < websiteList.length; i++) {
+            const website = websiteList[i];
+            const result = batchResult.websites[i];
+            const websiteResult = {
+              status: result.status,
+              isDuplicate: result.isDuplicate,
+              traffic: result.traffic,
+              details: {
+                httpStatus: result.details.httpStatus,
+                responseTime: result.details.responseTime,
+                ssl: result.details.ssl
+              }
+            };
+            await verificationStorage.saveWebsiteVerification(website, websiteResult);
+          }
+        }
+
+        console.log('✅ Todos los resultados de verificación en lote guardados en historial');
+      } catch (saveError) {
+        console.error('❌ Error guardando resultados en historial:', saveError);
+        // No bloquear la UI por errores de guardado
+      }
       
       setResult(batchResult);
       toast({

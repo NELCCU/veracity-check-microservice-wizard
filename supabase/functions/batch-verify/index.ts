@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,11 +11,6 @@ interface BatchRequest {
   emails?: string[];
   websites?: string[];
 }
-
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
 
 const verifyPhone = async (phone: string) => {
   try {
@@ -109,7 +103,7 @@ const verifyWebsite = async (url: string) => {
 
     return {
       status: response.ok ? 'valid' : 'invalid',
-      isDuplicate: false, // Esto requeriría lógica adicional
+      isDuplicate: false,
       traffic: {
         monthlyVisits: Math.floor(Math.random() * 1000000),
         ranking: Math.floor(Math.random() * 100000),
@@ -159,72 +153,8 @@ const handler = async (req: Request): Promise<Response> => {
       Promise.all(websites.map(website => verifyWebsite(website)))
     ]);
 
-    // Obtener el usuario autenticado
-    const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: userData } = await supabase.auth.getUser(token);
-      
-      if (userData.user) {
-        // Guardar resultados en la base de datos
-        const savePromises = [];
-
-        // Guardar teléfonos
-        phones.forEach((phone, index) => {
-          const result = phoneResults[index];
-          savePromises.push(
-            supabase.from('phone_verifications').insert({
-              user_id: userData.user.id,
-              phone_number: phone,
-              status: result.status,
-              country: result.details.country,
-              carrier: result.details.carrier,
-              line_type: result.details.lineType,
-              is_active: result.details.isActive
-            })
-          );
-        });
-
-        // Guardar emails
-        emails.forEach((email, index) => {
-          const result = emailResults[index];
-          savePromises.push(
-            supabase.from('email_verifications').insert({
-              user_id: userData.user.id,
-              email: email,
-              status: result.status,
-              domain: result.details.domain,
-              is_deliverable: result.details.isDeliverable,
-              is_disposable: result.details.isDisposable,
-              mx_records: result.details.mxRecords,
-              smtp_check: result.details.smtpCheck
-            })
-          );
-        });
-
-        // Guardar sitios web
-        websites.forEach((website, index) => {
-          const result = websiteResults[index];
-          savePromises.push(
-            supabase.from('website_verifications').insert({
-              user_id: userData.user.id,
-              url: website,
-              status: result.status,
-              is_duplicate: result.isDuplicate,
-              http_status: result.details.httpStatus,
-              response_time: result.details.responseTime,
-              ssl_enabled: result.details.ssl,
-              monthly_visits: result.traffic?.monthlyVisits,
-              ranking: result.traffic?.ranking,
-              category: result.traffic?.category
-            })
-          );
-        });
-
-        await Promise.all(savePromises);
-        console.log('Batch verification results saved to database');
-      }
-    }
+    // NOTE: Removed database saving from edge function to prevent duplicates
+    // The frontend will handle saving to the database after receiving the results
 
     // Calcular resumen
     const allResults = [...phoneResults, ...emailResults, ...websiteResults];
@@ -241,6 +171,8 @@ const handler = async (req: Request): Promise<Response> => {
         invalid: invalidCount
       }
     };
+
+    console.log('Batch verification completed without saving to database');
 
     return new Response(JSON.stringify(batchResult), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
