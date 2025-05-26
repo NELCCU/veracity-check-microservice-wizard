@@ -24,15 +24,28 @@ export abstract class BaseVerificationStorage {
     return `${dateStr}-${shortId}`;
   }
 
-  // Método para encontrar registro por número de caso
+  // Método corregido para encontrar registro por número de caso
   protected parseCaseNumber(caseNumber: string): { dateStr: string; shortId: string } {
-    const parts = caseNumber.split('-');
-    if (parts.length !== 2) {
-      throw new Error('Formato de número de caso inválido');
+    console.log(`🔍 Parseando número de caso: ${caseNumber}`);
+    
+    // Verificar si el formato es YYMMDD-SHORTID (formato actual)
+    const match = caseNumber.match(/^(\d{6})-([A-F0-9]{8})$/);
+    if (match) {
+      const [, dateStr, shortId] = match;
+      console.log(`✅ Formato válido encontrado - Fecha: ${dateStr}, ID: ${shortId}`);
+      return { dateStr, shortId };
     }
-    return {
-      dateStr: parts[0],
-      shortId: parts[1]
-    };
+    
+    // Fallback para formato anterior (si existe)
+    const parts = caseNumber.split('-');
+    if (parts.length >= 2) {
+      const shortId = parts[parts.length - 1]; // Tomar la última parte como ID
+      const dateStr = parts[0];
+      console.log(`⚠️ Usando formato fallback - Fecha: ${dateStr}, ID: ${shortId}`);
+      return { dateStr, shortId };
+    }
+    
+    console.error(`❌ Formato de número de caso inválido: ${caseNumber}`);
+    throw new Error(`Formato de número de caso inválido: ${caseNumber}`);
   }
 }
