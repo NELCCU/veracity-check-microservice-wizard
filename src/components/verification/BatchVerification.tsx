@@ -62,11 +62,15 @@ export const BatchVerification = () => {
             const phone = phoneList[i];
             const result = batchResult.phones[i];
             const phoneResult = {
-              country: result.details.country,
-              carrier: result.details.carrier,
-              lineType: result.details.lineType,
-              isActive: result.details.isActive,
-              status: result.status
+              status: result.status,
+              details: {
+                country: result.details.country,
+                carrier: result.details.carrier,
+                lineType: result.details.lineType,
+                isActive: result.details.isActive,
+                format: result.details.format
+              },
+              timestamp: result.timestamp
             };
             await verificationStorage.savePhoneVerification(phone, phoneResult);
           }
@@ -78,12 +82,15 @@ export const BatchVerification = () => {
             const email = emailList[i];
             const result = batchResult.emails[i];
             const emailResult = {
-              domain: result.details.domain,
-              isDeliverable: result.details.isDeliverable,
-              isDisposable: result.details.isDisposable,
-              mxRecords: result.details.mxRecords,
-              smtpCheck: result.details.smtpCheck,
-              status: result.status
+              status: result.status,
+              details: {
+                domain: result.details.domain,
+                isDeliverable: result.details.isDeliverable,
+                isDisposable: result.details.isDisposable,
+                mxRecords: result.details.mxRecords,
+                smtpCheck: result.details.smtpCheck
+              },
+              timestamp: result.timestamp
             };
             await verificationStorage.saveEmailVerification(email, emailResult);
           }
@@ -94,15 +101,84 @@ export const BatchVerification = () => {
           for (let i = 0; i < websiteList.length; i++) {
             const website = websiteList[i];
             const result = batchResult.websites[i];
+            // Convertir el resultado del lote al formato completo de WebsiteVerificationResult
             const websiteResult = {
               status: result.status,
               isDuplicate: result.isDuplicate,
+              trustScore: result.trustScore || 0,
               traffic: result.traffic,
-              details: {
-                httpStatus: result.details.httpStatus,
-                responseTime: result.details.responseTime,
-                ssl: result.details.ssl
-              }
+              details: result.details,
+              sslInfo: {
+                enabled: result.details.ssl || false,
+                valid: result.details.ssl || false,
+                issuer: 'Unknown',
+                expiryDate: null,
+                grade: 'F'
+              },
+              domainInfo: {
+                domain: new URL(website).hostname,
+                registrar: 'Unknown',
+                registrationDate: null,
+                expiryDate: null,
+                nameServers: [],
+                whoisPrivacy: false,
+                ageInDays: 0
+              },
+              contentAnalysis: {
+                title: '',
+                description: '',
+                keywords: [],
+                language: 'Unknown',
+                hasContactInfo: false,
+                hasTermsOfService: false,
+                hasPrivacyPolicy: false,
+                hasCookiePolicy: false,
+                socialMediaLinks: [],
+                contentScore: 0
+              },
+              technologyStack: {
+                framework: 'Unknown',
+                cms: 'Unknown',
+                server: 'Unknown',
+                analytics: [],
+                technologies: [],
+                jsLibraries: []
+              },
+              securityAnalysis: {
+                blacklisted: false,
+                malwareDetected: false,
+                phishingRisk: false,
+                reputationScore: 0,
+                riskLevel: 'Low' as const,
+                securityHeaders: {
+                  hasXFrameOptions: false,
+                  hasCSP: false,
+                  hasHSTS: false
+                }
+              },
+              responseHeaders: {
+                server: 'Unknown',
+                contentType: 'Unknown',
+                lastModified: null,
+                cacheControl: null,
+                xFrameOptions: null,
+                contentSecurityPolicy: null,
+                strictTransportSecurity: null
+              },
+              similarSites: [],
+              duplicateDetails: {
+                exact_match: false,
+                differences: []
+              },
+              imitationAnalysis: {
+                is_potential_imitation: false,
+                imitation_score: 0,
+                suspicious_elements: [],
+                legitimate_indicators: []
+              },
+              contentFingerprint: '',
+              visualFingerprint: '',
+              timestamp: result.timestamp
             };
             await verificationStorage.saveWebsiteVerification(website, websiteResult);
           }
