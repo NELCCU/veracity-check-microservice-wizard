@@ -77,12 +77,12 @@ export class EmailVerificationStorage extends BaseVerificationStorage {
       
       console.log(`🗑️ Eliminando verificación de email - Caso: ${caseNumber}, ID parcial: ${shortId}`);
       
-      // Usar LIKE con CAST para convertir UUID a texto
+      // Usar ILIKE con conversión de UUID a texto
       const { data, error } = await supabase
         .from('email_verifications')
         .delete()
         .eq('user_id', user.id)
-        .like('id::text', `${shortId.toLowerCase()}%`)
+        .ilike('id::text', `${shortId.toLowerCase()}%`)
         .select();
 
       if (error) {
