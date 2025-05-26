@@ -111,10 +111,12 @@ export class EmailVerificationStorage extends BaseVerificationStorage {
 
       console.log(`📊 Total de registros encontrados: ${allRecords?.length || 0}`);
       
-      // Buscar el registro que coincida con el ID parcial
-      const matchingRecord = allRecords?.find(record => 
-        record.id.toLowerCase().startsWith(shortId)
-      );
+      // Buscar el registro que coincida con el ID parcial usando JavaScript
+      const matchingRecord = allRecords?.find(record => {
+        const recordShortId = record.id.substring(0, 8).toLowerCase();
+        console.log(`🔍 Comparando: ${recordShortId} con ${shortId}`);
+        return recordShortId === shortId;
+      });
 
       if (!matchingRecord) {
         console.log(`⚠️ No se encontró verificación de email con el caso: ${caseNumber}`);
@@ -145,53 +147,6 @@ export class EmailVerificationStorage extends BaseVerificationStorage {
     } catch (error) {
       console.error('💥 Error eliminando verificación de email:', error);
       throw error;
-    }
-  }
-
-  async getRecentEmailVerifications(limit: number = 10) {
-    try {
-      const user = await this.getAuthenticatedUser();
-      
-      const { data, error } = await supabase
-        .from('email_verifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        console.error('❌ Error obteniendo verificaciones de email:', error);
-        return [];
-      }
-
-      // Agregar número de caso a cada verificación
-      const dataWithCaseNumbers = (data || []).map(verification => ({
-        ...verification,
-        caseNumber: this.generateCaseNumberFromData(verification.id, verification.created_at)
-      }));
-
-      console.log(`📊 Verificaciones de email encontradas: ${dataWithCaseNumbers.length}`);
-      return dataWithCaseNumbers;
-    } catch (error) {
-      console.error('💥 Error obteniendo verificaciones de email:', error);
-      return [];
-    }
-  }
-
-  async getEmailVerificationStats(today: string) {
-    try {
-      const user = await this.getAuthenticatedUser();
-
-      const { count } = await supabase
-        .from('email_verifications')
-        .select('id', { count: 'exact' })
-        .eq('user_id', user.id)
-        .gte('created_at', today);
-
-      return count || 0;
-    } catch (error) {
-      console.error('Error obteniendo estadísticas de email:', error);
-      return 0;
     }
   }
 }
