@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { PhoneVerificationResult } from "@/types/verification";
 import { BaseVerificationStorage } from "./BaseVerificationStorage";
@@ -66,6 +65,30 @@ export class PhoneVerificationStorage extends BaseVerificationStorage {
     } catch (error) {
       console.error('Error obteniendo estadísticas de teléfono:', error);
       return 0;
+    }
+  }
+
+  async deletePhoneVerificationByCaseNumber(caseNumber: string) {
+    try {
+      const user = await this.getAuthenticatedUser();
+      const { shortId } = this.parseCaseNumber(caseNumber);
+      
+      const { data, error } = await supabase
+        .from('phone_verifications')
+        .delete()
+        .eq('user_id', user.id)
+        .ilike('id', `${shortId.toLowerCase()}%`)
+        .select();
+
+      if (error) {
+        console.error('Error eliminando verificación de teléfono:', error);
+        throw error;
+      }
+
+      return data && data.length > 0;
+    } catch (error) {
+      console.error('Error eliminando verificación de teléfono:', error);
+      throw error;
     }
   }
 }

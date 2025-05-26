@@ -2,17 +2,24 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { History, Phone, Mail, Globe, Clock, Hash, Calendar } from "lucide-react";
+import { History, Phone, Mail, Globe, Clock, Hash, Calendar, Trash2, Loader2 } from "lucide-react";
 import { PhoneVerificationDetail } from "./PhoneVerificationDetail";
 import { EmailVerificationDetail } from "./EmailVerificationDetail";
 import { WebsiteVerificationDetail } from "./WebsiteVerificationDetail";
+import { useState } from "react";
+import { verificationStorage } from "@/services/verificationStorage";
+import { useToast } from "@/hooks/use-toast";
 
 interface VerificationDetailProps {
   selectedItem: any;
   onBackToList: () => void;
+  onVerificationDeleted?: () => void;
 }
 
-export const VerificationDetail = ({ selectedItem, onBackToList }: VerificationDetailProps) => {
+export const VerificationDetail = ({ selectedItem, onBackToList, onVerificationDeleted }: VerificationDetailProps) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { toast } = useToast();
+
   const getIcon = () => {
     switch (selectedItem.type) {
       case 'phone': return <Phone className="h-5 w-5 text-blue-600" />;
@@ -75,6 +82,40 @@ export const VerificationDetail = ({ selectedItem, onBackToList }: VerificationD
     return date.toLocaleDateString('es-ES');
   };
 
+  const handleDeleteVerification = async () => {
+    setIsDeleting(true);
+    try {
+      const caseNumber = generateCaseNumber(selectedItem.id, selectedItem.created_at);
+      console.log(`🗑️ Eliminando verificación con caso: ${caseNumber}`);
+      
+      const deleted = await verificationStorage.deleteVerificationByCaseNumber(caseNumber);
+      
+      if (deleted) {
+        toast({
+          title: "Verificación eliminada",
+          description: `La verificación ${caseNumber} ha sido eliminada exitosamente`,
+        });
+        onVerificationDeleted?.();
+        onBackToList();
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo encontrar la verificación para eliminar",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error eliminando verificación:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la verificación",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const caseNumber = generateCaseNumber(selectedItem.id, selectedItem.created_at);
   const { fullDate, relativeTime } = formatDateTime(selectedItem.created_at);
 
@@ -99,9 +140,29 @@ export const VerificationDetail = ({ selectedItem, onBackToList }: VerificationD
             <History className="h-5 w-5" />
             Detalle Completo del Análisis de Debida Diligencia
           </CardTitle>
-          <Button variant="outline" onClick={onBackToList}>
-            Volver al Historial
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={handleDeleteVerification}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Eliminar
+                </>
+              )}
+            </Button>
+            <Button variant="outline" onClick={onBackToList}>
+              Volver al Historial
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

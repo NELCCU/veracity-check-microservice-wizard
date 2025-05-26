@@ -69,6 +69,37 @@ export class VerificationStorage {
       return { today: { phones: 0, emails: 0, websites: 0, total: 0 } };
     }
   }
+
+  async deleteVerificationByCaseNumber(caseNumber: string) {
+    try {
+      console.log(`🗑️ Intentando eliminar verificación con número de caso: ${caseNumber}`);
+      
+      // Intentar eliminar de cada tabla
+      const [phoneDeleted, emailDeleted, websiteDeleted] = await Promise.all([
+        this.phoneStorage.deletePhoneVerificationByCaseNumber(caseNumber).catch(() => false),
+        this.emailStorage.deleteEmailVerificationByCaseNumber(caseNumber).catch(() => false),
+        this.websiteStorage.deleteWebsiteVerificationByCaseNumber(caseNumber).catch(() => false)
+      ]);
+
+      const totalDeleted = phoneDeleted || emailDeleted || websiteDeleted;
+      
+      if (totalDeleted) {
+        console.log(`✅ Verificación eliminada exitosamente - Caso: ${caseNumber}`);
+        const deletedFrom = [];
+        if (phoneDeleted) deletedFrom.push('teléfonos');
+        if (emailDeleted) deletedFrom.push('emails');
+        if (websiteDeleted) deletedFrom.push('sitios web');
+        console.log(`📊 Eliminado de: ${deletedFrom.join(', ')}`);
+      } else {
+        console.log(`⚠️ No se encontró ninguna verificación con el caso: ${caseNumber}`);
+      }
+
+      return totalDeleted;
+    } catch (error) {
+      console.error('💥 Error eliminando verificación:', error);
+      throw error;
+    }
+  }
 }
 
 export const verificationStorage = new VerificationStorage();

@@ -1,9 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { History } from "lucide-react";
 import { VerificationListItem } from "@/components/verification/history/VerificationListItem";
 import { VerificationDetail } from "@/components/verification/history/VerificationDetail";
+import { verificationStorage } from "@/services/verificationStorage";
 
 interface RecentVerificationsProps {
   recentVerifications: {
@@ -11,11 +12,17 @@ interface RecentVerificationsProps {
     emails: any[];
     websites: any[];
   };
+  onRefresh?: () => void;
 }
 
-export const RecentVerifications = ({ recentVerifications }: RecentVerificationsProps) => {
+export const RecentVerifications = ({ recentVerifications: initialVerifications, onRefresh }: RecentVerificationsProps) => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+  const [recentVerifications, setRecentVerifications] = useState(initialVerifications);
+
+  useEffect(() => {
+    setRecentVerifications(initialVerifications);
+  }, [initialVerifications]);
 
   const hasNoVerifications = 
     recentVerifications.phones.length === 0 && 
@@ -32,11 +39,23 @@ export const RecentVerifications = ({ recentVerifications }: RecentVerifications
     setViewMode('list');
   };
 
+  const handleVerificationDeleted = async () => {
+    // Refrescar la lista de verificaciones
+    try {
+      const updatedVerifications = await verificationStorage.getRecentVerifications();
+      setRecentVerifications(updatedVerifications);
+      onRefresh?.();
+    } catch (error) {
+      console.error('Error refrescando verificaciones:', error);
+    }
+  };
+
   if (viewMode === 'detail' && selectedItem) {
     return (
       <VerificationDetail 
         selectedItem={selectedItem} 
-        onBackToList={handleBackToList} 
+        onBackToList={handleBackToList}
+        onVerificationDeleted={handleVerificationDeleted}
       />
     );
   }

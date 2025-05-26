@@ -81,7 +81,10 @@ export const DashboardTabs = ({
       </TabsContent>
 
       <TabsContent value="history">
-        <RecentVerifications recentVerifications={recentVerifications} />
+        <RecentVerifications 
+          recentVerifications={recentVerifications}
+          onRefresh={onRefreshStats}
+        />
       </TabsContent>
     </Tabs>
   );

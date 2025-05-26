@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { EmailVerificationResult } from "@/types/verification";
 import { BaseVerificationStorage } from "./BaseVerificationStorage";
@@ -67,6 +66,30 @@ export class EmailVerificationStorage extends BaseVerificationStorage {
     } catch (error) {
       console.error('Error obteniendo estadísticas de email:', error);
       return 0;
+    }
+  }
+
+  async deleteEmailVerificationByCaseNumber(caseNumber: string) {
+    try {
+      const user = await this.getAuthenticatedUser();
+      const { shortId } = this.parseCaseNumber(caseNumber);
+      
+      const { data, error } = await supabase
+        .from('email_verifications')
+        .delete()
+        .eq('user_id', user.id)
+        .ilike('id', `${shortId.toLowerCase()}%`)
+        .select();
+
+      if (error) {
+        console.error('Error eliminando verificación de email:', error);
+        throw error;
+      }
+
+      return data && data.length > 0;
+    } catch (error) {
+      console.error('Error eliminando verificación de email:', error);
+      throw error;
     }
   }
 }

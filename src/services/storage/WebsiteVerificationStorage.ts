@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WebsiteVerificationResult } from "@/types/verification";
 import { BaseVerificationStorage } from "./BaseVerificationStorage";
@@ -107,6 +106,39 @@ export class WebsiteVerificationStorage extends BaseVerificationStorage {
     } catch (error) {
       console.error('💥 Error obteniendo estadísticas de sitio web:', error);
       return 0;
+    }
+  }
+
+  async deleteWebsiteVerificationByCaseNumber(caseNumber: string) {
+    try {
+      const user = await this.getAuthenticatedUser();
+      const { shortId } = this.parseCaseNumber(caseNumber);
+      
+      console.log(`🗑️ Eliminando verificación de sitio web - Caso: ${caseNumber}, ID parcial: ${shortId}`);
+      
+      const { data, error } = await supabase
+        .from('website_verifications')
+        .delete()
+        .eq('user_id', user.id)
+        .ilike('id', `${shortId.toLowerCase()}%`)
+        .select();
+
+      if (error) {
+        console.error('❌ Error eliminando verificación de sitio web:', error);
+        throw error;
+      }
+
+      const deleted = data && data.length > 0;
+      if (deleted) {
+        console.log(`✅ Verificación de sitio web eliminada exitosamente - Caso: ${caseNumber}`, data[0]);
+      } else {
+        console.log(`⚠️ No se encontró verificación de sitio web con el caso: ${caseNumber}`);
+      }
+
+      return deleted;
+    } catch (error) {
+      console.error('💥 Error eliminando verificación de sitio web:', error);
+      throw error;
     }
   }
 }
