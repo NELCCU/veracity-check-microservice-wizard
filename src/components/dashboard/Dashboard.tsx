@@ -2,26 +2,32 @@
 import { DashboardStats } from "./DashboardStats";
 import { DashboardTabs } from "./DashboardTabs";
 import { useQuery } from "@tanstack/react-query";
-import { verificationStorage } from "@/services/verificationStorage";
+import { optimizedVerificationStorage } from "@/services/storage/OptimizedVerificationStorage";
 import { dashboardService } from "@/services/dashboardService";
 
 export const Dashboard = () => {
-  // Cargar estadísticas de verificaciones
+  // Cargar estadísticas de verificaciones con cache optimizado
   const { data: stats, refetch: refetchStats } = useQuery({
     queryKey: ['verification-stats'],
-    queryFn: () => verificationStorage.getVerificationStats(),
+    queryFn: () => optimizedVerificationStorage.getVerificationStats(),
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    cacheTime: 5 * 60 * 1000, // 5 minutos
   });
 
-  // Cargar verificaciones recientes
+  // Cargar verificaciones recientes con cache optimizado
   const { data: recentVerifications, refetch: refetchRecent } = useQuery({
     queryKey: ['recent-verifications'],
-    queryFn: () => verificationStorage.getRecentVerifications(10),
+    queryFn: () => optimizedVerificationStorage.getRecentVerifications(10),
+    staleTime: 1 * 60 * 1000, // 1 minuto
+    cacheTime: 3 * 60 * 1000, // 3 minutos
   });
 
   // Cargar estadísticas avanzadas
   const { data: advancedStats, refetch: refetchAdvanced, isLoading: loadingAdvanced } = useQuery({
     queryKey: ['advanced-stats'],
     queryFn: () => dashboardService.getAdvancedStats(),
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    cacheTime: 10 * 60 * 1000, // 10 minutos
   });
 
   const handleRefreshStats = () => {

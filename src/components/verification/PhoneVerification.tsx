@@ -1,208 +1,140 @@
 
-import { useState } from "react";
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Phone, CheckCircle, XCircle, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
-import { validatePhone, formatPhone } from "@/utils/validators";
+import { Badge } from "@/components/ui/badge";
+import { Phone, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { useOptimizedVerification } from "@/hooks/useOptimizedVerification";
+import { validatePhone } from "@/utils/validators";
 import { PhoneVerificationResult } from "@/types/verification";
-import { useToast } from "@/hooks/use-toast";
-import { useVerification } from "@/hooks/useVerification";
 
-interface PhoneVerificationProps {
-  onVerificationComplete?: () => void;
-}
-
-export const PhoneVerification = ({ onVerificationComplete }: PhoneVerificationProps) => {
+export const PhoneVerification = () => {
   const [phone, setPhone] = useState("");
   const [result, setResult] = useState<PhoneVerificationResult | null>(null);
-  const [validationError, setValidationError] = useState("");
-  const [lastAttemptedPhone, setLastAttemptedPhone] = useState("");
-  const { toast } = useToast();
-  const { verifyPhone, retryLastOperation, isLoading, error, lastError, canRetry } = useVerification();
+  const [validationError, setValidationError] = useState<string>("");
+  
+  const { verifyPhone, isLoading, error } = useOptimizedVerification();
 
   const handleVerify = async () => {
-    const formattedPhone = formatPhone(phone);
-    const validation = validatePhone(formattedPhone);
-    
+    // Validación del formato
+    const validation = validatePhone(phone);
     if (!validation.isValid) {
-      setValidationError(validation.message || "");
+      setValidationError(validation.message || "Formato inválido");
       return;
     }
 
     setValidationError("");
-    setLastAttemptedPhone(formattedPhone);
-    
-    const verificationResult = await verifyPhone(formattedPhone);
-    
+    setResult(null);
+
+    const verificationResult = await verifyPhone(phone);
     if (verificationResult) {
       setResult(verificationResult);
-      onVerificationComplete?.();
-      toast({
-        title: "Verificación completada",
-        description: `Número ${verificationResult.status === 'valid' ? 'válido' : 'inválido'}`,
-      });
     }
   };
 
-  const handleRetry = async () => {
-    if (canRetry && lastAttemptedPhone) {
-      const canProceed = await retryLastOperation();
-      if (canProceed) {
-        const verificationResult = await verifyPhone(lastAttemptedPhone);
-        if (verificationResult) {
-          setResult(verificationResult);
-          onVerificationComplete?.();
-          toast({
-            title: "Verificación completada",
-            description: `Número ${verificationResult.status === 'valid' ? 'válido' : 'inválido'}`,
-          });
-        }
-      }
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'valid':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'invalid':
+        return <XCircle className="h-5 w-5 text-red-600" />;
+      default:
+        return <AlertCircle className="h-5 w-5 text-yellow-600" />;
     }
   };
 
-  const displayError = validationError || error;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'valid':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'invalid':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    }
+  };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Phone className="h-5 w-5" />
-          Verificación de Número de Teléfono
+          Verificación de Teléfono
         </CardTitle>
         <CardDescription>
-          Valida formato E.164 y verifica si el número está activo
+          Verifica la validez y obtén información detallada de números telefónicos
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="phone">Número de Teléfono</Label>
-          <Input
-            id="phone"
-            type="tel"
-            placeholder="+1234567890"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="font-mono"
-          />
-          <p className="text-sm text-gray-500">
-            Formato E.164: + seguido del código de país y número
-          </p>
-        </div>
-
-        {displayError && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <span>{displayError}</span>
-              {canRetry && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRetry}
-                  disabled={isLoading}
-                  className="ml-2"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Reintentar
-                </Button>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {lastError?.type === 'quota_exceeded' && (
-          <Alert variant="destructive">
-            <XCircle className="h-4 w-4" />
-            <AlertDescription>
-              <div className="space-y-2">
-                <p className="font-medium">Plan de NumVerify agotado</p>
-                <p className="text-sm">Contacta al administrador para renovar los créditos de verificación de teléfonos.</p>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleVerify} 
-            disabled={isLoading || !phone}
-            className="flex-1"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Verificando...
-              </>
-            ) : (
-              <>
-                <Phone className="mr-2 h-4 w-4" />
-                Verificar Teléfono
-              </>
-            )}
-          </Button>
-          
-          {canRetry && lastAttemptedPhone && (
-            <Button 
-              variant="outline"
-              onClick={handleRetry} 
+          <div className="flex space-x-2">
+            <Input
+              id="phone"
+              placeholder="+1234567890"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className={validationError ? "border-red-500" : ""}
               disabled={isLoading}
+            />
+            <Button 
+              onClick={handleVerify} 
+              disabled={isLoading || !phone.trim()}
+              className="min-w-[100px]"
             >
-              <RefreshCw className="h-4 w-4" />
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verificando...
+                </>
+              ) : (
+                'Verificar'
+              )}
             </Button>
+          </div>
+          {validationError && (
+            <p className="text-sm text-red-600">{validationError}</p>
+          )}
+          {error && (
+            <p className="text-sm text-red-600">{error}</p>
           )}
         </div>
 
         {result && (
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                {result.status === 'valid' ? (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                ) : (
-                  <XCircle className="h-5 w-5 text-red-600" />
-                )}
-                Resultado de Verificación
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Estado:</span>
-                  <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                    result.status === 'valid' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {result.status === 'valid' ? 'Válido' : 'Inválido'}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium">País:</span>
-                  <span className="ml-2">{result.details.country}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Operador:</span>
-                  <span className="ml-2">{result.details.carrier}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Tipo:</span>
-                  <span className="ml-2">{result.details.lineType}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Activo:</span>
-                  <span className="ml-2">{result.details.isActive ? 'Sí' : 'No'}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Verificado:</span>
-                  <span className="ml-2">{new Date(result.timestamp).toLocaleString()}</span>
-                </div>
+          <div className="mt-6 p-4 border rounded-lg bg-gray-50">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Resultado de Verificación</h3>
+              <Badge className={getStatusColor(result.status)}>
+                {getStatusIcon(result.status)}
+                <span className="ml-1">
+                  {result.status === 'valid' ? 'Válido' : 'Inválido'}
+                </span>
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-600">País</p>
+                <p className="text-sm">{result.details.country || 'No disponible'}</p>
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Operador</p>
+                <p className="text-sm">{result.details.carrier || 'No disponible'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Tipo de Línea</p>
+                <p className="text-sm">{result.details.lineType || 'No disponible'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Estado</p>
+                <p className="text-sm">
+                  {result.details.isActive ? 'Activo' : 'Inactivo'}
+                </p>
+              </div>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
