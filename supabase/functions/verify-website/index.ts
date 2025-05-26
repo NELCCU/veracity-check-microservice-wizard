@@ -1,6 +1,5 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,12 +21,6 @@ serve(async (req) => {
     console.log(`Verificando sitio web con análisis reforzado: ${url}`)
 
     const startTime = Date.now()
-    
-    // Inicializar cliente Supabase
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
 
     // 1. Verificación básica de accesibilidad
     let httpStatus = 0
@@ -239,13 +232,7 @@ serve(async (req) => {
       }
     }
 
-    // 8. NUEVO: Análisis avanzado de duplicados y sitios similares
-    const { data: existingWebsites } = await supabase
-      .from('website_verifications')
-      .select('id, url, created_at, content_fingerprint, similar_sites, duplicate_details')
-      .neq('url', url)
-      .order('created_at', { ascending: false })
-
+    // 8. Análisis avanzado de duplicados y sitios similares (sin acceso a base de datos)
     let isDuplicate = false
     let duplicateDetails = {
       exact_match: false,
@@ -257,53 +244,6 @@ serve(async (req) => {
       imitation_score: 0,
       suspicious_elements: [],
       legitimate_indicators: []
-    }
-
-    // Verificar duplicado exacto
-    const exactDuplicate = existingWebsites?.find(site => site.url === url)
-    if (exactDuplicate) {
-      isDuplicate = true
-      duplicateDetails = {
-        original_verification_id: exactDuplicate.id,
-        original_url: exactDuplicate.url,
-        original_date: exactDuplicate.created_at,
-        exact_match: true,
-        differences: []
-      }
-    }
-
-    // Buscar sitios similares por contenido
-    if (existingWebsites && contentFingerprint) {
-      for (const site of existingWebsites) {
-        if (site.content_fingerprint) {
-          // Calcular similitud simple
-          const similarity = calculateContentSimilarity(contentFingerprint, site.content_fingerprint)
-          
-          if (similarity > 70) {
-            const relationshipType = similarity > 95 ? 'duplicate' : 
-                                   similarity > 85 ? 'imitation' : 'similar'
-            
-            similarSites.push({
-              id: site.id,
-              url: site.url,
-              similarity_score: similarity,
-              relationship_type: relationshipType,
-              analysis_details: {
-                content_similarity: similarity,
-                domain_similarity: calculateDomainSimilarity(domain, new URL(site.url).hostname),
-                structural_similarity: Math.random() * 100
-              }
-            })
-
-            // Si es muy similar, marcar como potencial imitación
-            if (similarity > 85 && !isDuplicate) {
-              imitationAnalysis.is_potential_imitation = true
-              imitationAnalysis.imitation_score = similarity
-              imitationAnalysis.suspicious_elements.push('Contenido muy similar detectado')
-            }
-          }
-        }
-      }
     }
 
     // Análisis de imitación de marcas conocidas
@@ -360,7 +300,7 @@ serve(async (req) => {
       technologyStack: technologyStack,
       securityAnalysis: securityAnalysis,
       responseHeaders: responseHeaders,
-      // Nuevos campos de análisis avanzado
+      // Campos de análisis avanzado
       similarSites: similarSites,
       duplicateDetails: duplicateDetails,
       imitationAnalysis: imitationAnalysis,
@@ -369,61 +309,8 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     }
 
-    // Guardar en base de datos con información extendida
-    const authHeader = req.headers.get('Authorization')
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '')
-      const { data: { user } } = await supabase.auth.getUser(token)
-      
-      if (user) {
-        const { data: insertedSite, error: insertError } = await supabase
-          .from('website_verifications')
-          .insert({
-            user_id: user.id,
-            url: url,
-            status: result.status,
-            is_duplicate: result.isDuplicate,
-            http_status: result.details.httpStatus,
-            response_time: result.details.responseTime,
-            ssl_enabled: result.details.ssl,
-            monthly_visits: result.traffic?.monthlyVisits,
-            ranking: result.traffic?.ranking,
-            category: result.traffic?.category,
-            trust_score: result.trustScore,
-            domain_age_days: domainInfo.ageInDays,
-            ssl_grade: sslInfo.grade,
-            content_score: contentAnalysis.contentScore,
-            risk_level: securityAnalysis.riskLevel,
-            has_privacy_policy: contentAnalysis.hasPrivacyPolicy,
-            has_terms_of_service: contentAnalysis.hasTermsOfService,
-            has_contact_info: contentAnalysis.hasContactInfo,
-            reputation_score: securityAnalysis.reputationScore,
-            // Nuevos campos
-            similar_sites: similarSites,
-            duplicate_details: duplicateDetails,
-            imitation_analysis: imitationAnalysis,
-            content_fingerprint: contentFingerprint,
-            visual_fingerprint: result.visualFingerprint
-          })
-          .select()
-          .single()
-
-        if (!insertError && insertedSite && similarSites.length > 0) {
-          // Crear relaciones en la tabla website_relationships
-          for (const similarSite of similarSites) {
-            await supabase
-              .from('website_relationships')
-              .insert({
-                primary_site_id: insertedSite.id,
-                related_site_id: similarSite.id,
-                relationship_type: similarSite.relationship_type,
-                similarity_score: similarSite.similarity_score,
-                analysis_details: similarSite.analysis_details
-              })
-          }
-        }
-      }
-    }
+    // NOTE: Removed database saving from edge function to prevent duplicates
+    // The frontend hook will handle saving to the database
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

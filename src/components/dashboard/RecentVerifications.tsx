@@ -50,6 +50,20 @@ export const RecentVerifications = ({ recentVerifications: initialVerifications,
     }
   };
 
+  // Función para combinar y ordenar todas las verificaciones por fecha
+  const getAllVerificationsSorted = () => {
+    const allVerifications = [
+      ...recentVerifications.phones.map(v => ({ ...v, type: 'phone' as const })),
+      ...recentVerifications.emails.map(v => ({ ...v, type: 'email' as const })),
+      ...recentVerifications.websites.map(v => ({ ...v, type: 'website' as const }))
+    ];
+
+    // Ordenar por fecha de creación (más reciente primero)
+    return allVerifications.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  };
+
   if (viewMode === 'detail' && selectedItem) {
     return (
       <VerificationDetail 
@@ -60,6 +74,8 @@ export const RecentVerifications = ({ recentVerifications: initialVerifications,
     );
   }
 
+  const sortedVerifications = getAllVerificationsSorted();
+
   return (
     <Card>
       <CardHeader>
@@ -68,7 +84,7 @@ export const RecentVerifications = ({ recentVerifications: initialVerifications,
           Verificaciones Recientes
         </CardTitle>
         <CardDescription>
-          Últimas 5 verificaciones realizadas - Haz clic para ver análisis completo
+          Últimas verificaciones realizadas ordenadas por fecha - Haz clic para ver análisis completo
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -78,29 +94,11 @@ export const RecentVerifications = ({ recentVerifications: initialVerifications,
           </p>
         ) : (
           <div className="space-y-3">
-            {recentVerifications.phones.map((verification: any) => (
+            {sortedVerifications.map((verification) => (
               <VerificationListItem
-                key={verification.id}
+                key={`${verification.type}-${verification.id}`}
                 verification={verification}
-                type="phone"
-                onItemClick={handleItemClick}
-              />
-            ))}
-
-            {recentVerifications.emails.map((verification: any) => (
-              <VerificationListItem
-                key={verification.id}
-                verification={verification}
-                type="email"
-                onItemClick={handleItemClick}
-              />
-            ))}
-
-            {recentVerifications.websites.map((verification: any) => (
-              <VerificationListItem
-                key={verification.id}
-                verification={verification}
-                type="website"
+                type={verification.type}
                 onItemClick={handleItemClick}
               />
             ))}
