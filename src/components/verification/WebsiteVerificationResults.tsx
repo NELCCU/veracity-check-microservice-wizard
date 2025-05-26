@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,11 @@ import {
   Globe,
   Eye,
   Target,
-  Link2
+  Link2,
+  FileText,
+  TrendingUp,
+  Server,
+  Lock
 } from "lucide-react";
 import { WebsiteVerificationResult, SimilarSite } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
