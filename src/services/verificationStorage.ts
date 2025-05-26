@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { PhoneVerificationResult, EmailVerificationResult, WebsiteVerificationResult } from "@/types/verification";
 
@@ -60,6 +61,7 @@ export class VerificationStorage {
       const { error } = await supabase
         .from('website_verifications')
         .insert({
+          user_id: user.id,
           url: url,
           status: result.status,
           is_duplicate: result.isDuplicate,
@@ -70,16 +72,6 @@ export class VerificationStorage {
           ranking: result.traffic?.ranking,
           category: result.traffic?.category,
           // Guardar todos los datos del análisis completo
-          trust_score: result.trustScore,
-          domain_age_days: result.domainInfo?.ageInDays,
-          ssl_grade: result.sslInfo?.grade,
-          content_score: result.contentAnalysis?.contentScore,
-          risk_level: result.securityAnalysis?.riskLevel,
-          has_privacy_policy: result.contentAnalysis?.hasPrivacyPolicy,
-          has_terms_of_service: result.contentAnalysis?.hasTermsOfService,
-          has_contact_info: result.contentAnalysis?.hasContactInfo,
-          reputation_score: result.securityAnalysis?.reputationScore,
-          // Guardar análisis completo como JSON
           duplicate_details: result.duplicateDetails || {},
           similar_sites: result.similarSites || [],
           imitation_analysis: result.imitationAnalysis || {},
