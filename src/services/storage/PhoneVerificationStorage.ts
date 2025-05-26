@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { PhoneVerificationResult } from "@/types/verification";
 import { BaseVerificationStorage } from "./BaseVerificationStorage";
@@ -95,30 +96,45 @@ export class PhoneVerificationStorage extends BaseVerificationStorage {
       
       console.log(`🗑️ Eliminando verificación de teléfono - Caso: ${caseNumber}, ID parcial: ${shortId}`);
       
-      // Primero buscar el registro específico
-      const record = await this.findRecordByPartialId('phone_verifications', shortId);
+      // Buscar el registro específico usando el ID parcial
+      const { data, error } = await supabase
+        .from('phone_verifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .ilike('id::text', `${shortId.toLowerCase()}%`)
+        .limit(5);
+
+      if (error) {
+        console.error(`❌ Error buscando en phone_verifications:`, error);
+        throw error;
+      }
+
+      console.log(`📊 Registros encontrados en phone_verifications:`, data?.length || 0);
       
-      if (!record) {
+      if (!data || data.length === 0) {
         console.log(`⚠️ No se encontró verificación de teléfono con el caso: ${caseNumber}`);
         return false;
       }
 
+      const record = data[0];
+      console.log(`✅ Registro encontrado:`, record.id);
+
       // Eliminar el registro específico por ID completo
-      const { data, error } = await supabase
+      const { data: deleteData, error: deleteError } = await supabase
         .from('phone_verifications')
         .delete()
         .eq('user_id', user.id)
         .eq('id', record.id)
         .select();
 
-      if (error) {
-        console.error('❌ Error eliminando verificación de teléfono:', error);
-        throw error;
+      if (deleteError) {
+        console.error('❌ Error eliminando verificación de teléfono:', deleteError);
+        throw deleteError;
       }
 
-      const deleted = data && data.length > 0;
+      const deleted = deleteData && deleteData.length > 0;
       if (deleted) {
-        console.log(`✅ Verificación de teléfono eliminada exitosamente - Caso: ${caseNumber}`, data[0]);
+        console.log(`✅ Verificación de teléfono eliminada exitosamente - Caso: ${caseNumber}`, deleteData[0]);
       }
 
       return deleted;

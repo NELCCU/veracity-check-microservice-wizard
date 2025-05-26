@@ -40,7 +40,7 @@ export abstract class BaseVerificationStorage {
     const match = caseNumber.match(/^(\d{6})-([A-F0-9]{8})$/);
     if (match) {
       const [, dateStr, shortId] = match;
-      console.log(`✅ Formato válido encontrado - Fecha: ${dateStr}, ID: ${shortId}`);
+      console.log(`✅ Formato válido encontrado - Fecha: ${dateStr}, ID parcial extraído: ${shortId}`);
       return { dateStr, shortId };
     }
     
@@ -49,42 +49,11 @@ export abstract class BaseVerificationStorage {
     if (parts.length >= 2) {
       const shortId = parts[parts.length - 1]; // Tomar la última parte como ID
       const dateStr = parts[0];
-      console.log(`⚠️ Usando formato fallback - Fecha: ${dateStr}, ID: ${shortId}`);
+      console.log(`⚠️ Usando formato fallback - Fecha: ${dateStr}, ID parcial extraído: ${shortId}`);
       return { dateStr, shortId };
     }
     
     console.error(`❌ Formato de número de caso inválido: ${caseNumber}`);
     throw new Error(`Formato de número de caso inválido: ${caseNumber}`);
-  }
-
-  // Método helper para buscar por ID parcial
-  protected async findRecordByPartialId(tableName: string, shortId: string): Promise<any> {
-    const user = await this.getAuthenticatedUser();
-    
-    console.log(`🔍 Buscando en tabla ${tableName} con ID parcial: ${shortId}`);
-    
-    // Buscar registros que empiecen con el shortId
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('*')
-      .eq('user_id', user.id)
-      .ilike('id::text', `${shortId.toLowerCase()}%`)
-      .limit(5);
-
-    if (error) {
-      console.error(`❌ Error buscando en ${tableName}:`, error);
-      throw error;
-    }
-
-    console.log(`📊 Registros encontrados en ${tableName}:`, data?.length || 0);
-    
-    if (data && data.length > 0) {
-      // Si encontramos múltiples registros, tomar el primero
-      const record = data[0];
-      console.log(`✅ Registro encontrado:`, record.id);
-      return record;
-    }
-
-    return null;
   }
 }
