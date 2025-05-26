@@ -1,5 +1,6 @@
 
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { phoneService } from '@/services/phoneService';
 import { emailService } from '@/services/emailService';
 import { websiteService } from '@/services/websiteService';
@@ -11,15 +12,23 @@ import { PerformanceMonitor } from '@/services/optimization/PerformanceMonitor';
 
 /**
  * Optimized Verification Hook - Mejoras de rendimiento y seguridad
- * Implementa cache, batch operations y auditoria
+ * Implementa cache, batch operations, auditoria y actualización automática
  */
 export const useOptimizedVerification = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastError, setLastError] = useState<ApiError | null>(null);
   
+  const queryClient = useQueryClient();
   const audit = SecurityAudit.getInstance();
   const monitor = PerformanceMonitor.getInstance();
+
+  // Función para invalidar queries relacionadas
+  const invalidateQueries = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['verification-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['recent-verifications'] });
+    queryClient.invalidateQueries({ queryKey: ['advanced-stats'] });
+  }, [queryClient]);
 
   const verifyPhone = useCallback(async (phone: string): Promise<PhoneVerificationResult | null> => {
     const endTiming = monitor.startTiming('verify_phone_total');
@@ -33,15 +42,14 @@ export const useOptimizedVerification = () => {
       const result = await phoneService.verifyPhone(phone);
       
       if (result) {
-        console.log('💾 Resultado obtenido, guardando en historial de forma optimizada...');
+        console.log('💾 Resultado obtenido, guardando en historial...');
         
-        // Guardar de forma asíncrona para no bloquear la UI
-        const savePromise = optimizedVerificationStorage.savePhoneVerification(phone, result);
+        // Guardar y actualizar cache inmediatamente
+        await optimizedVerificationStorage.savePhoneVerification(phone, result);
+        console.log('✅ Verificación de teléfono guardada exitosamente');
         
-        // No esperamos el guardado, continúamos inmediatamente
-        savePromise
-          .then(() => console.log('✅ Verificación de teléfono guardada exitosamente'))
-          .catch(err => console.error('❌ Error guardando en historial:', err));
+        // Invalidar queries para forzar actualización
+        invalidateQueries();
         
         audit.logEvent({
           userId: 'current-user',
@@ -73,7 +81,7 @@ export const useOptimizedVerification = () => {
       setIsLoading(false);
       endTiming();
     }
-  }, [audit, monitor]);
+  }, [audit, monitor, invalidateQueries]);
 
   const verifyEmail = useCallback(async (email: string): Promise<EmailVerificationResult | null> => {
     const endTiming = monitor.startTiming('verify_email_total');
@@ -87,15 +95,14 @@ export const useOptimizedVerification = () => {
       const result = await emailService.verifyEmail(email);
       
       if (result) {
-        console.log('💾 Resultado obtenido, guardando en historial de forma optimizada...');
+        console.log('💾 Resultado obtenido, guardando en historial...');
         
-        // Guardar de forma asíncrona para no bloquear la UI
-        const savePromise = optimizedVerificationStorage.saveEmailVerification(email, result);
+        // Guardar y actualizar cache inmediatamente
+        await optimizedVerificationStorage.saveEmailVerification(email, result);
+        console.log('✅ Verificación de email guardada exitosamente');
         
-        // No esperamos el guardado, continúamos inmediatamente
-        savePromise
-          .then(() => console.log('✅ Verificación de email guardada exitosamente'))
-          .catch(err => console.error('❌ Error guardando en historial:', err));
+        // Invalidar queries para forzar actualización
+        invalidateQueries();
         
         audit.logEvent({
           userId: 'current-user',
@@ -127,7 +134,7 @@ export const useOptimizedVerification = () => {
       setIsLoading(false);
       endTiming();
     }
-  }, [audit, monitor]);
+  }, [audit, monitor, invalidateQueries]);
 
   const verifyWebsite = useCallback(async (url: string): Promise<WebsiteVerificationResult | null> => {
     const endTiming = monitor.startTiming('verify_website_total');
@@ -141,18 +148,19 @@ export const useOptimizedVerification = () => {
       const result = await websiteService.verifyWebsite(url);
       
       if (result) {
-        console.log('💾 Resultado obtenido, guardando en historial de forma optimizada...');
+        console.log('💾 Resultado obtenido, guardando en historial...');
         
-        // Guardar de forma asíncrona para no bloquear la UI
-        const savePromise = optimizedVerificationStorage.saveWebsiteVerification(url, result);
-        
-        // No esperamos el guardado, continúamos inmediatamente
-        savePromise
-          .then(() => console.log('✅ Verificación de sitio web guardada exitosamente'))
-          .catch(err => {
-            console.error('❌ Error guardando en historial:', err);
-            setError('Verificación completada pero no se pudo guardar en el historial');
-          });
+        try {
+          // Guardar y actualizar cache inmediatamente
+          await optimizedVerificationStorage.saveWebsiteVerification(url, result);
+          console.log('✅ Verificación de sitio web guardada exitosamente');
+          
+          // Invalidar queries para forzar actualización
+          invalidateQueries();
+        } catch (saveError) {
+          console.error('❌ Error guardando en historial:', saveError);
+          setError('Verificación completada pero no se pudo guardar en el historial');
+        }
         
         audit.logEvent({
           userId: 'current-user',
@@ -184,7 +192,7 @@ export const useOptimizedVerification = () => {
       setIsLoading(false);
       endTiming();
     }
-  }, [audit, monitor]);
+  }, [audit, monitor, invalidateQueries]);
 
   const retryLastOperation = useCallback(async (): Promise<boolean> => {
     if (!lastError || !errorHandlingService.isRecoverableError(lastError)) {

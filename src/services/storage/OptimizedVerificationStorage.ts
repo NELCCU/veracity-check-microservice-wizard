@@ -15,6 +15,12 @@ export class OptimizedVerificationStorage extends BaseVerificationStorage {
   private audit = SecurityAudit.getInstance();
   private monitor = PerformanceMonitor.getInstance();
 
+  // Método para limpiar cache específico
+  private invalidateCache() {
+    this.cache.clear();
+    console.log('🗑️ Cache invalidado para actualización inmediata');
+  }
+
   async savePhoneVerification(phone: string, result: PhoneVerificationResult): Promise<any> {
     const endTiming = this.monitor.startTiming('save_phone_verification');
     
@@ -56,8 +62,8 @@ export class OptimizedVerificationStorage extends BaseVerificationStorage {
         const caseNumber = this.generateCaseNumberFromData(data.id, data.created_at);
         const result = { ...data, caseNumber };
         
-        // Invalidar cache relacionado
-        this.cache.clear();
+        // Invalidar cache para actualización inmediata
+        this.invalidateCache();
         
         console.log(`✅ Verificación de teléfono guardada - Caso: ${caseNumber}`);
         return result;
@@ -114,8 +120,8 @@ export class OptimizedVerificationStorage extends BaseVerificationStorage {
         const caseNumber = this.generateCaseNumberFromData(data.id, data.created_at);
         const result = { ...data, caseNumber };
         
-        // Invalidar cache relacionado
-        this.cache.clear();
+        // Invalidar cache para actualización inmediata
+        this.invalidateCache();
         
         console.log(`✅ Verificación de email guardada - Caso: ${caseNumber}`);
         return result;
@@ -191,8 +197,8 @@ export class OptimizedVerificationStorage extends BaseVerificationStorage {
         const caseNumber = this.generateCaseNumberFromData(data.id, data.created_at);
         const result = { ...data, caseNumber };
         
-        // Invalidar cache relacionado
-        this.cache.clear();
+        // Invalidar cache para actualización inmediata
+        this.invalidateCache();
         
         console.log(`✅ Verificación de sitio web guardada - Caso: ${caseNumber}`);
         return result;
@@ -212,7 +218,7 @@ export class OptimizedVerificationStorage extends BaseVerificationStorage {
     const cacheKey = `recent_verifications_${limit}`;
     
     try {
-      // Intentar obtener del cache primero
+      // Reducir tiempo de cache para actualizaciones más frecuentes
       const cached = this.cache.get(cacheKey);
       if (cached) {
         console.log('📋 Verificaciones obtenidas del cache');
@@ -221,8 +227,8 @@ export class OptimizedVerificationStorage extends BaseVerificationStorage {
 
       const user = await this.getAuthenticatedUser();
 
-      // Ejecutar consultas en paralelo para mejor rendimiento
-      const [phoneData, emailData, websiteData] = await Promise.all([
+      // Ejecutar consultas en paralelo con mejor rendimiento
+      const [phoneData, emailData, websiteData] = await Promise.allSettled([
         supabase
           .from('phone_verifications')
           .select('*')
@@ -246,22 +252,22 @@ export class OptimizedVerificationStorage extends BaseVerificationStorage {
       ]);
 
       const result = {
-        phones: (phoneData.data || []).map(verification => ({
+        phones: phoneData.status === 'fulfilled' ? (phoneData.value.data || []).map(verification => ({
           ...verification,
           caseNumber: this.generateCaseNumberFromData(verification.id, verification.created_at)
-        })),
-        emails: (emailData.data || []).map(verification => ({
+        })) : [],
+        emails: emailData.status === 'fulfilled' ? (emailData.value.data || []).map(verification => ({
           ...verification,
           caseNumber: this.generateCaseNumberFromData(verification.id, verification.created_at)
-        })),
-        websites: (websiteData.data || []).map(verification => ({
+        })) : [],
+        websites: websiteData.status === 'fulfilled' ? (websiteData.value.data || []).map(verification => ({
           ...verification,
           caseNumber: this.generateCaseNumberFromData(verification.id, verification.created_at)
-        }))
+        })) : []
       };
 
-      // Guardar en cache por 2 minutos
-      this.cache.set(cacheKey, result, 2 * 60 * 1000);
+      // Cache más corto para actualizaciones más frecuentes
+      this.cache.set(cacheKey, result, 30 * 1000); // 30 segundos
 
       console.log(`📊 Verificaciones encontradas: ${result.phones.length + result.emails.length + result.websites.length}`);
       return result;
@@ -278,7 +284,7 @@ export class OptimizedVerificationStorage extends BaseVerificationStorage {
     const cacheKey = 'verification_stats_today';
     
     try {
-      // Intentar obtener del cache primero
+      // Cache más corto para estadísticas más actualizadas
       const cached = this.cache.get(cacheKey);
       if (cached) {
         console.log('📊 Estadísticas obtenidas del cache');
@@ -288,8 +294,8 @@ export class OptimizedVerificationStorage extends BaseVerificationStorage {
       const user = await this.getAuthenticatedUser();
       const today = new Date().toISOString().split('T')[0];
 
-      // Ejecutar consultas en paralelo
-      const [phoneCount, emailCount, websiteCount] = await Promise.all([
+      // Ejecutar consultas en paralelo con manejo de errores
+      const [phoneCount, emailCount, websiteCount] = await Promise.allSettled([
         supabase
           .from('phone_verifications')
           .select('id', { count: 'exact' })
@@ -311,15 +317,17 @@ export class OptimizedVerificationStorage extends BaseVerificationStorage {
 
       const result = {
         today: {
-          phones: phoneCount.count || 0,
-          emails: emailCount.count || 0,
-          websites: websiteCount.count || 0,
-          total: (phoneCount.count || 0) + (emailCount.count || 0) + (websiteCount.count || 0)
+          phones: phoneCount.status === 'fulfilled' ? phoneCount.value.count || 0 : 0,
+          emails: emailCount.status === 'fulfilled' ? emailCount.value.count || 0 : 0,
+          websites: websiteCount.status === 'fulfilled' ? websiteCount.value.count || 0 : 0,
+          total: (phoneCount.status === 'fulfilled' ? phoneCount.value.count || 0 : 0) + 
+                 (emailCount.status === 'fulfilled' ? emailCount.value.count || 0 : 0) + 
+                 (websiteCount.status === 'fulfilled' ? websiteCount.value.count || 0 : 0)
         }
       };
 
-      // Guardar en cache por 5 minutos
-      this.cache.set(cacheKey, result, 5 * 60 * 1000);
+      // Cache más corto para estadísticas más actualizadas
+      this.cache.set(cacheKey, result, 60 * 1000); // 1 minuto
 
       return result;
     } catch (error) {
