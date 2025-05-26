@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, CheckCircle, XCircle, Loader2, Copy, TrendingUp, Shield, Lock, AlertTriangle, Clock, Server, FileText } from "lucide-react";
+import { Globe, CheckCircle, XCircle, Loader2, Copy, TrendingUp, Shield, Lock, AlertTriangle, Clock, Server, FileText, ExternalLink, Facebook, Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
 import { validateUrl, formatUrl } from "@/utils/validators";
 import { WebsiteVerificationResult } from "@/types/verification";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +59,27 @@ export const WebsiteVerification = ({ onVerificationComplete }: WebsiteVerificat
       case 'High': return "text-red-600 bg-red-100";
       default: return "text-gray-600 bg-gray-100";
     }
+  };
+
+  const getSocialMediaIcon = (url: string) => {
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('facebook')) return <Facebook className="h-4 w-4" />;
+    if (lowerUrl.includes('twitter') || lowerUrl.includes('x.com')) return <Twitter className="h-4 w-4" />;
+    if (lowerUrl.includes('linkedin')) return <Linkedin className="h-4 w-4" />;
+    if (lowerUrl.includes('instagram')) return <Instagram className="h-4 w-4" />;
+    if (lowerUrl.includes('youtube')) return <Youtube className="h-4 w-4" />;
+    return <Globe className="h-4 w-4" />;
+  };
+
+  const getSocialMediaName = (url: string) => {
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('facebook')) return 'Facebook';
+    if (lowerUrl.includes('twitter') || lowerUrl.includes('x.com')) return 'Twitter/X';
+    if (lowerUrl.includes('linkedin')) return 'LinkedIn';
+    if (lowerUrl.includes('instagram')) return 'Instagram';
+    if (lowerUrl.includes('youtube')) return 'YouTube';
+    if (lowerUrl.includes('tiktok')) return 'TikTok';
+    return 'Red Social';
   };
 
   const displayError = validationError || error;
@@ -344,9 +364,27 @@ export const WebsiteVerification = ({ onVerificationComplete }: WebsiteVerificat
                       
                       {result.contentAnalysis.socialMediaLinks.length > 0 && (
                         <div className="mt-4">
-                          <h4 className="font-medium mb-2">Redes Sociales:</h4>
-                          <div className="text-xs text-gray-600">
-                            {result.contentAnalysis.socialMediaLinks.length} enlaces encontrados
+                          <h4 className="font-medium mb-3">Redes Sociales Encontradas:</h4>
+                          <div className="space-y-2">
+                            {result.contentAnalysis.socialMediaLinks.map((link, index) => (
+                              <div key={index} className="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200">
+                                <div className="flex items-center gap-2">
+                                  {getSocialMediaIcon(link)}
+                                  <span className="text-sm font-medium">{getSocialMediaName(link)}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-500 max-w-48 truncate">{link}</span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 w-7 p-0"
+                                    onClick={() => window.open(link, '_blank')}
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
