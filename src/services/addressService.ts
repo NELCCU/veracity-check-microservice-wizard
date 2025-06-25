@@ -53,6 +53,8 @@ class AddressService {
         geocoder.geocode(
           { address: address },
           (results, status) => {
+            console.log(`📍 Estado de geocodificación: ${status}`);
+            
             if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
               const result = results[0];
               
@@ -116,23 +118,47 @@ class AddressService {
               console.log('✅ Dirección verificada exitosamente:', verificationResult);
               resolve(verificationResult);
             } else {
-              console.log('❌ No se pudo verificar la dirección:', status);
+              console.log('❌ Error en geocodificación:', status);
               
-              const verificationResult: AddressVerificationResult = {
-                status: 'invalid',
-                confidenceScore: 0,
-                components: {},
-                types: [],
-                timestamp: new Date().toISOString()
-              };
+              // Manejar errores específicos de Google Maps
+              let errorMessage = 'No se pudo verificar la dirección';
               
-              resolve(verificationResult);
+              switch (status) {
+                case google.maps.GeocoderStatus.ZERO_RESULTS:
+                  errorMessage = 'No se encontraron resultados para esta dirección';
+                  break;
+                case google.maps.GeocoderStatus.OVER_QUERY_LIMIT:
+                  errorMessage = 'Se ha excedido el límite de consultas de Google Maps';
+                  break;
+                case google.maps.GeocoderStatus.REQUEST_DENIED:
+                  errorMessage = 'Solicitud denegada. Verifica que el Geocoding API esté activado en Google Cloud Console';
+                  break;
+                case google.maps.GeocoderStatus.INVALID_REQUEST:
+                  errorMessage = 'Solicitud inválida. Verifica el formato de la dirección';
+                  break;
+                case google.maps.GeocoderStatus.UNKNOWN_ERROR:
+                  errorMessage = 'Error del servidor de Google Maps. Intenta de nuevo más tarde';
+                  break;
+                case google.maps.GeocoderStatus.ERROR:
+                  errorMessage = 'Error de conexión con Google Maps';
+                  break;
+              }
+              
+              reject(new Error(errorMessage));
             }
           }
         );
       });
     } catch (error) {
       console.error('💥 Error en verificación de dirección:', error);
+      
+      // Manejar errores específicos de carga de API
+      if (error instanceof Error) {
+        if (error.message.includes('ApiNotActivatedMapError')) {
+          throw new Error('El Geocoding API no está activado. Ve a Google Cloud Console → APIs & Services → Library → busca "Geocoding API" y actívalo.');
+        }
+      }
+      
       throw errorHandlingService.handleError(error, 'google-maps');
     }
   }

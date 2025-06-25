@@ -95,13 +95,46 @@ export const ApiStatusIndicator = () => {
       await googleMapsLoader.loadGoogleMaps(settings.googleMapsApiKey);
       
       if (googleMapsLoader.isGoogleMapsLoaded()) {
-        console.log('✅ Google Maps API operativa');
-        return {
-          service: 'Google Maps',
-          status: 'online',
-          lastCheck: new Date(),
-          message: 'API funcionando correctamente'
-        };
+        // Probar una geocodificación simple para verificar que el servicio está activo
+        const geocoder = new google.maps.Geocoder();
+        
+        return new Promise((resolve) => {
+          geocoder.geocode({ address: 'New York, NY' }, (results, status) => {
+            if (status === google.maps.GeocoderStatus.OK) {
+              console.log('✅ Google Maps API y Geocoding API operativos');
+              resolve({
+                service: 'Google Maps',
+                status: 'online',
+                lastCheck: new Date(),
+                message: 'API y Geocoding funcionando correctamente'
+              });
+            } else if (status === google.maps.GeocoderStatus.REQUEST_DENIED) {
+              console.log('❌ Geocoding API no activado');
+              resolve({
+                service: 'Google Maps',
+                status: 'offline',
+                lastCheck: new Date(),
+                message: 'Geocoding API no activado en Google Cloud Console'
+              });
+            } else if (status === google.maps.GeocoderStatus.OVER_QUERY_LIMIT) {
+              console.log('⚠️ Límite de cuota excedido');
+              resolve({
+                service: 'Google Maps',
+                status: 'limited',
+                lastCheck: new Date(),
+                message: 'Cuota de geocodificación excedida'
+              });
+            } else {
+              console.log('❌ Error en Geocoding API:', status);
+              resolve({
+                service: 'Google Maps',
+                status: 'offline',
+                lastCheck: new Date(),
+                message: `Error del servicio: ${status}`
+              });
+            }
+          });
+        });
       } else {
         console.log('❌ Google Maps API no disponible');
         return {
