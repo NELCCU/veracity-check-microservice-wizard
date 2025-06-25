@@ -30,7 +30,9 @@ class AddressService {
 
   private async initializeGeocoder(apiKey?: string): Promise<google.maps.Geocoder> {
     if (!this.geocoder) {
-      // Asegurar que Google Maps esté cargado
+      console.log('🔧 Inicializando geocoder...');
+      
+      // Asegurar que Google Maps esté cargado con timeout
       await googleMapsLoader.loadGoogleMaps(apiKey);
       
       // Verificar si Google Maps está disponible
@@ -39,6 +41,7 @@ class AddressService {
       }
       
       this.geocoder = new google.maps.Geocoder();
+      console.log('✅ Geocoder inicializado correctamente');
     }
     return this.geocoder;
   }
@@ -50,13 +53,23 @@ class AddressService {
       const geocoder = await this.initializeGeocoder(apiKey);
 
       return new Promise((resolve, reject) => {
+        // Timeout para geocodificación
+        const timeoutId = setTimeout(() => {
+          console.error('⏰ Timeout en geocodificación');
+          reject(new Error('Timeout al verificar la dirección. Inténtalo de nuevo.'));
+        }, 10000); // 10 segundos timeout
+
+        console.log('📍 Enviando solicitud de geocodificación...');
+        
         geocoder.geocode(
           { address: address },
           (results, status) => {
+            clearTimeout(timeoutId);
             console.log(`📍 Estado de geocodificación: ${status}`);
             
             if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
               const result = results[0];
+              console.log('📍 Resultado obtenido:', result);
               
               // Extraer componentes de la dirección
               const components: any = {};
@@ -125,7 +138,7 @@ class AddressService {
               
               switch (status) {
                 case google.maps.GeocoderStatus.ZERO_RESULTS:
-                  errorMessage = 'No se encontraron resultados para esta dirección';
+                  errorMessage = 'No se encontraron resultados para esta dirección. Verifica que esté escrita correctamente.';
                   break;
                 case google.maps.GeocoderStatus.OVER_QUERY_LIMIT:
                   errorMessage = 'Se ha excedido el límite de consultas de Google Maps';
@@ -156,6 +169,9 @@ class AddressService {
       if (error instanceof Error) {
         if (error.message.includes('ApiNotActivatedMapError')) {
           throw new Error('El Geocoding API no está activado. Ve a Google Cloud Console → APIs & Services → Library → busca "Geocoding API" y actívalo.');
+        }
+        if (error.message.includes('Timeout')) {
+          throw error; // Preservar mensajes de timeout
         }
       }
       

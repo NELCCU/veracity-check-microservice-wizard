@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { MapPin, Loader2, CheckCircle, XCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { addressService, AddressVerificationResult } from "@/services/addressService";
 import { addressVerificationStorage } from "@/services/storage/AddressVerificationStorage";
@@ -46,8 +45,11 @@ export const AddressVerification = () => {
 
     try {
       console.log(`🏠 Verificando dirección: ${address}`);
+      console.log(`🔑 Usando API Key: ${settings.googleMapsApiKey.substring(0, 10)}...`);
       
       const verificationResult = await addressService.verifyAddress(address, settings.googleMapsApiKey);
+      console.log('📋 Resultado de verificación obtenido:', verificationResult);
+      
       setResult(verificationResult);
       
       // Guardar en el historial
@@ -72,7 +74,7 @@ export const AddressVerification = () => {
       }
       
     } catch (err) {
-      console.error('Error en verificación:', err);
+      console.error('💥 Error en verificación:', err);
       let errorMessage = 'Error desconocido al verificar la dirección';
       
       if (err instanceof Error) {
@@ -80,6 +82,10 @@ export const AddressVerification = () => {
           errorMessage = 'Error: Clave de API de Google Maps no configurada. Ve a Configuración para añadirla.';
         } else if (err.message.includes('Google Maps API no está disponible')) {
           errorMessage = 'Error: Google Maps API no está disponible. Intenta recargar la página.';
+        } else if (err.message.includes('Timeout')) {
+          errorMessage = 'Error: Tiempo de espera agotado. Verifica tu conexión e intenta de nuevo.';
+        } else if (err.message.includes('Geocoding API')) {
+          errorMessage = 'Error: Geocoding API no está activado. Consulta las instrucciones de configuración.';
         } else {
           errorMessage = err.message;
         }
@@ -94,6 +100,10 @@ export const AddressVerification = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    handleVerify();
   };
 
   const getConfidenceColor = (score: number) => {
@@ -158,9 +168,20 @@ export const AddressVerification = () => {
 
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center gap-2 text-red-700">
-                <XCircle className="h-5 w-5" />
-                <span className="font-medium">Error:</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-red-700">
+                  <XCircle className="h-5 w-5" />
+                  <span className="font-medium">Error:</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetry}
+                  disabled={isLoading}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Reintentar
+                </Button>
               </div>
               <p className="text-red-600 mt-1">{error}</p>
             </div>
