@@ -87,11 +87,11 @@ export const ProviderSettings = ({
         </div>
 
         <div className="space-y-2 md:col-span-2">
-          <Label>Google Maps API Key</Label>
+          <Label>Google Map API Key</Label>
           <div className="flex gap-2">
             <Input
               type={showGoogleMapsKey ? "text" : "password"}
-              placeholder="Ingresa tu Google Maps API Key"
+              placeholder="Ingresa tu Google Map API Key"
               value={settings.googleMapsApiKey || ''}
               onChange={(e) => onSettingsChange({...settings, googleMapsApiKey: e.target.value})}
             />

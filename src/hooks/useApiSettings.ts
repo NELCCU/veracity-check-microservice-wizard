@@ -36,7 +36,8 @@ export const useApiSettings = () => {
           emailApiProvider: data.email_api_provider as 'zerobounce' | 'hunter',
           websiteApiProvider: data.website_api_provider as 'similar_web' | 'builtwith',
           dailyVerificationLimit: data.daily_verification_limit || 100,
-          googleMapsApiKey: data.google_maps_api_key || ''
+          // Handle the case where google_maps_api_key field might not exist yet
+          googleMapsApiKey: (data as any).google_maps_api_key || ''
         });
       } else {
         // Crear configuración por defecto
@@ -67,17 +68,24 @@ export const useApiSettings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
+      // Prepare the update object
+      const updateData: any = {
+        user_id: user.id,
+        phone_api_provider: newSettings.phoneApiProvider,
+        email_api_provider: newSettings.emailApiProvider,
+        website_api_provider: newSettings.websiteApiProvider,
+        daily_verification_limit: newSettings.dailyVerificationLimit,
+        updated_at: new Date().toISOString()
+      };
+
+      // Only add google_maps_api_key if it's provided
+      if (newSettings.googleMapsApiKey !== undefined) {
+        updateData.google_maps_api_key = newSettings.googleMapsApiKey;
+      }
+
       const { error } = await supabase
         .from('user_settings')
-        .upsert({
-          user_id: user.id,
-          phone_api_provider: newSettings.phoneApiProvider,
-          email_api_provider: newSettings.emailApiProvider,
-          website_api_provider: newSettings.websiteApiProvider,
-          daily_verification_limit: newSettings.dailyVerificationLimit,
-          google_maps_api_key: newSettings.googleMapsApiKey,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(updateData);
 
       if (error) throw error;
 
