@@ -14,7 +14,7 @@ class GoogleMapsLoader {
     return GoogleMapsLoader.instance;
   }
 
-  async loadGoogleMaps(): Promise<void> {
+  async loadGoogleMaps(apiKey?: string): Promise<void> {
     if (this.isLoaded) {
       return Promise.resolve();
     }
@@ -31,11 +31,15 @@ class GoogleMapsLoader {
         return;
       }
 
-      // Obtener la clave de API desde las variables de entorno
-      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      // Usar la clave proporcionada o intentar obtenerla de las variables de entorno
+      let googleMapsApiKey = apiKey;
       
-      if (!apiKey) {
-        console.error('Google Maps API key no encontrada. Asegúrate de configurar VITE_GOOGLE_MAPS_API_KEY');
+      if (!googleMapsApiKey) {
+        googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      }
+      
+      if (!googleMapsApiKey) {
+        console.error('Google Maps API key no encontrada. Configúrala en la configuración de la aplicación.');
         reject(new Error('Google Maps API key no configurada'));
         return;
       }
@@ -43,7 +47,7 @@ class GoogleMapsLoader {
       // Crear el script para cargar Google Maps
       const script = document.createElement('script');
       script.type = 'text/javascript';
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry,places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=geometry,places`;
       script.async = true;
       script.defer = true;
 

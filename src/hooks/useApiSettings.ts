@@ -8,6 +8,7 @@ export interface ApiSettings {
   emailApiProvider: 'zerobounce' | 'hunter';
   websiteApiProvider: 'similar_web' | 'builtwith';
   dailyVerificationLimit: number;
+  googleMapsApiKey?: string;
 }
 
 export const useApiSettings = () => {
@@ -34,7 +35,8 @@ export const useApiSettings = () => {
           phoneApiProvider: data.phone_api_provider as 'numverify' | 'twilio',
           emailApiProvider: data.email_api_provider as 'zerobounce' | 'hunter',
           websiteApiProvider: data.website_api_provider as 'similar_web' | 'builtwith',
-          dailyVerificationLimit: data.daily_verification_limit || 100
+          dailyVerificationLimit: data.daily_verification_limit || 100,
+          googleMapsApiKey: data.google_maps_api_key || ''
         });
       } else {
         // Crear configuración por defecto
@@ -42,7 +44,8 @@ export const useApiSettings = () => {
           phoneApiProvider: 'numverify' as const,
           emailApiProvider: 'zerobounce' as const,
           websiteApiProvider: 'similar_web' as const,
-          dailyVerificationLimit: 100
+          dailyVerificationLimit: 100,
+          googleMapsApiKey: ''
         };
         setSettings(defaultSettings);
       }
@@ -72,6 +75,7 @@ export const useApiSettings = () => {
           email_api_provider: newSettings.emailApiProvider,
           website_api_provider: newSettings.websiteApiProvider,
           daily_verification_limit: newSettings.dailyVerificationLimit,
+          google_maps_api_key: newSettings.googleMapsApiKey,
           updated_at: new Date().toISOString()
         });
 

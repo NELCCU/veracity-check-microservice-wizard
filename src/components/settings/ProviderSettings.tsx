@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Save, Settings } from "lucide-react";
+import { Save, Settings, Eye, EyeOff } from "lucide-react";
 import { ApiSettings } from "@/hooks/useApiSettings";
+import { useState } from "react";
 
 interface ProviderSettingsProps {
   settings: ApiSettings | null;
@@ -19,6 +20,8 @@ export const ProviderSettings = ({
   onSettingsChange,
   onSave
 }: ProviderSettingsProps) => {
+  const [showGoogleMapsKey, setShowGoogleMapsKey] = useState(false);
+
   if (!settings) return null;
 
   return (
@@ -81,6 +84,37 @@ export const ProviderSettings = ({
             min="1"
             max="10000"
           />
+        </div>
+
+        <div className="space-y-2 md:col-span-2">
+          <Label>Google Maps API Key</Label>
+          <div className="flex gap-2">
+            <Input
+              type={showGoogleMapsKey ? "text" : "password"}
+              placeholder="Ingresa tu Google Maps API Key"
+              value={settings.googleMapsApiKey || ''}
+              onChange={(e) => onSettingsChange({...settings, googleMapsApiKey: e.target.value})}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setShowGoogleMapsKey(!showGoogleMapsKey)}
+            >
+              {showGoogleMapsKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          </div>
+          <p className="text-sm text-gray-600">
+            Necesaria para la verificación de direcciones. 
+            <a 
+              href="https://developers.google.com/maps/documentation/javascript/get-api-key" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline ml-1"
+            >
+              Obtener API Key
+            </a>
+          </p>
         </div>
       </div>
 

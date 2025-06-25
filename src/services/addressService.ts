@@ -28,10 +28,10 @@ export interface AddressVerificationResult {
 class AddressService {
   private geocoder: google.maps.Geocoder | null = null;
 
-  private async initializeGeocoder(): Promise<google.maps.Geocoder> {
+  private async initializeGeocoder(apiKey?: string): Promise<google.maps.Geocoder> {
     if (!this.geocoder) {
       // Asegurar que Google Maps esté cargado
-      await googleMapsLoader.loadGoogleMaps();
+      await googleMapsLoader.loadGoogleMaps(apiKey);
       
       // Verificar si Google Maps está disponible
       if (!googleMapsLoader.isGoogleMapsLoaded()) {
@@ -43,11 +43,11 @@ class AddressService {
     return this.geocoder;
   }
 
-  async verifyAddress(address: string): Promise<AddressVerificationResult> {
+  async verifyAddress(address: string, apiKey?: string): Promise<AddressVerificationResult> {
     try {
       console.log(`🏠 Iniciando verificación de dirección: ${address}`);
       
-      const geocoder = await this.initializeGeocoder();
+      const geocoder = await this.initializeGeocoder(apiKey);
 
       return new Promise((resolve, reject) => {
         geocoder.geocode(

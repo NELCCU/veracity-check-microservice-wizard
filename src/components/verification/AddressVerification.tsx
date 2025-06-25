@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { addressService, AddressVerificationResult } from "@/services/addressService";
 import { addressVerificationStorage } from "@/services/storage/AddressVerificationStorage";
 import { useQueryClient } from "@tanstack/react-query";
+import { useApiSettings } from "@/hooks/useApiSettings";
 
 export const AddressVerification = () => {
   const [address, setAddress] = useState("");
@@ -18,12 +19,22 @@ export const AddressVerification = () => {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { settings } = useApiSettings();
 
   const handleVerify = async () => {
     if (!address.trim()) {
       toast({
         title: "Error",
         description: "Por favor ingresa una dirección para verificar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!settings?.googleMapsApiKey) {
+      toast({
+        title: "Error",
+        description: "Google Maps API Key no configurada. Ve a Configuración para añadirla.",
         variant: "destructive"
       });
       return;
@@ -36,7 +47,7 @@ export const AddressVerification = () => {
     try {
       console.log(`🏠 Verificando dirección: ${address}`);
       
-      const verificationResult = await addressService.verifyAddress(address);
+      const verificationResult = await addressService.verifyAddress(address, settings.googleMapsApiKey);
       setResult(verificationResult);
       
       // Guardar en el historial
@@ -66,7 +77,7 @@ export const AddressVerification = () => {
       
       if (err instanceof Error) {
         if (err.message.includes('Google Maps API key')) {
-          errorMessage = 'Error: Clave de API de Google Maps no configurada. Contacta al administrador.';
+          errorMessage = 'Error: Clave de API de Google Maps no configurada. Ve a Configuración para añadirla.';
         } else if (err.message.includes('Google Maps API no está disponible')) {
           errorMessage = 'Error: Google Maps API no está disponible. Intenta recargar la página.';
         } else {
@@ -111,16 +122,17 @@ export const AddressVerification = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-blue-700">
-              <AlertTriangle className="h-5 w-5" />
-              <span className="font-medium">Configuración necesaria:</span>
+          {!settings?.googleMapsApiKey && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-blue-700">
+                <AlertTriangle className="h-5 w-5" />
+                <span className="font-medium">Configuración necesaria:</span>
+              </div>
+              <p className="text-blue-600 mt-1 text-sm">
+                Para usar esta función, necesitas configurar una clave de API de Google Maps en la sección de Configuración.
+              </p>
             </div>
-            <p className="text-blue-600 mt-1 text-sm">
-              Para usar esta función, necesitas configurar una clave de API de Google Maps. 
-              Contacta al administrador para obtener acceso.
-            </p>
-          </div>
+          )}
 
           <div className="flex gap-2">
             <Input
@@ -129,7 +141,7 @@ export const AddressVerification = () => {
               onChange={(e) => setAddress(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleVerify()}
             />
-            <Button onClick={handleVerify} disabled={isLoading}>
+            <Button onClick={handleVerify} disabled={isLoading || !settings?.googleMapsApiKey}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
