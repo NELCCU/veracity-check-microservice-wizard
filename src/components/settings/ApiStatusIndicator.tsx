@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, AlertCircle, Wifi, WifiOff } from "lucide-react";
+import { useApiSettings } from "@/hooks/useApiSettings";
+import { googleMapsLoader } from "@/services/googleMapsLoader";
 
 interface ApiStatus {
   service: string;
@@ -13,6 +15,7 @@ interface ApiStatus {
 }
 
 export const ApiStatusIndicator = () => {
+  const { settings } = useApiSettings();
   const [apiStatuses, setApiStatuses] = useState<ApiStatus[]>([
     {
       service: 'NumVerify',
@@ -26,6 +29,11 @@ export const ApiStatusIndicator = () => {
     },
     {
       service: 'SimilarWeb',
+      status: 'unknown',
+      lastCheck: new Date()
+    },
+    {
+      service: 'Google Maps',
       status: 'unknown',
       lastCheck: new Date()
     }
@@ -70,21 +78,94 @@ export const ApiStatusIndicator = () => {
     }
   };
 
-  // Simulación de verificación de estado (en producción esto vendría de las APIs reales)
-  useEffect(() => {
-    const checkApiStatus = () => {
-      setApiStatuses(prev => prev.map(api => ({
+  const checkGoogleMapsStatus = async (): Promise<ApiStatus> => {
+    try {
+      console.log('🗺️ Verificando estado de Google Maps API...');
+      
+      if (!settings?.googleMapsApiKey) {
+        return {
+          service: 'Google Maps',
+          status: 'offline',
+          lastCheck: new Date(),
+          message: 'API Key no configurada'
+        };
+      }
+
+      // Intentar cargar Google Maps
+      await googleMapsLoader.loadGoogleMaps(settings.googleMapsApiKey);
+      
+      if (googleMapsLoader.isGoogleMapsLoaded()) {
+        console.log('✅ Google Maps API operativa');
+        return {
+          service: 'Google Maps',
+          status: 'online',
+          lastCheck: new Date(),
+          message: 'API funcionando correctamente'
+        };
+      } else {
+        console.log('❌ Google Maps API no disponible');
+        return {
+          service: 'Google Maps',
+          status: 'offline',
+          lastCheck: new Date(),
+          message: 'Error cargando la API'
+        };
+      }
+    } catch (error) {
+      console.error('💥 Error verificando Google Maps:', error);
+      let message = 'Error desconocido';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          message = 'Clave de API inválida o sin permisos';
+        } else if (error.message.includes('quota')) {
+          return {
+            service: 'Google Maps',
+            status: 'limited',
+            lastCheck: new Date(),
+            message: 'Cuota excedida'
+          };
+        } else {
+          message = error.message;
+        }
+      }
+      
+      return {
+        service: 'Google Maps',
+        status: 'offline',
+        lastCheck: new Date(),
+        message
+      };
+    }
+  };
+
+  const checkApiStatus = async () => {
+    console.log('🔍 Iniciando verificación de estado de APIs...');
+    
+    // Verificar Google Maps (real)
+    const googleMapsStatus = await checkGoogleMapsStatus();
+    
+    setApiStatuses(prev => prev.map(api => {
+      if (api.service === 'Google Maps') {
+        return googleMapsStatus;
+      }
+      
+      // Para las otras APIs, simulamos el estado por ahora
+      // En producción estas también deberían hacer verificaciones reales
+      return {
         ...api,
         status: Math.random() > 0.8 ? 'limited' : Math.random() > 0.1 ? 'online' : 'offline',
         lastCheck: new Date()
-      })));
-    };
+      };
+    }));
+  };
 
+  useEffect(() => {
     checkApiStatus();
-    const interval = setInterval(checkApiStatus, 30000); // Verificar cada 30 segundos
+    const interval = setInterval(checkApiStatus, 60000); // Verificar cada minuto
 
     return () => clearInterval(interval);
-  }, []);
+  }, [settings?.googleMapsApiKey]);
 
   const hasIssues = apiStatuses.some(api => api.status === 'offline' || api.status === 'limited');
 
@@ -110,7 +191,12 @@ export const ApiStatusIndicator = () => {
             <div key={api.service} className="flex items-center justify-between p-2 rounded border">
               <div className="flex items-center gap-2">
                 {getStatusIcon(api.status)}
-                <span className="font-medium">{api.service}</span>
+                <div>
+                  <span className="font-medium">{api.service}</span>
+                  {api.message && (
+                    <p className="text-xs text-gray-500">{api.message}</p>
+                  )}
+                </div>
               </div>
               <Badge className={getStatusColor(api.status)}>
                 {getStatusText(api.status)}
