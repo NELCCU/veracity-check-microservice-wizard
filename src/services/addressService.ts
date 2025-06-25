@@ -1,5 +1,6 @@
 
 import { errorHandlingService } from './errorHandlingService';
+import { googleMapsLoader } from './googleMapsLoader';
 
 export interface AddressVerificationResult {
   status: 'valid' | 'invalid';
@@ -29,10 +30,14 @@ class AddressService {
 
   private async initializeGeocoder(): Promise<google.maps.Geocoder> {
     if (!this.geocoder) {
-      // Verificar si Google Maps ya está cargado
-      if (typeof google === 'undefined' || !google.maps) {
+      // Asegurar que Google Maps esté cargado
+      await googleMapsLoader.loadGoogleMaps();
+      
+      // Verificar si Google Maps está disponible
+      if (!googleMapsLoader.isGoogleMapsLoaded()) {
         throw new Error('Google Maps API no está disponible. Verifica que se haya cargado correctamente.');
       }
+      
       this.geocoder = new google.maps.Geocoder();
     }
     return this.geocoder;

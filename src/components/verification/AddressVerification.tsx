@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { MapPin, Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { addressService, AddressVerificationResult } from "@/services/addressService";
 import { addressVerificationStorage } from "@/services/storage/AddressVerificationStorage";
@@ -62,10 +62,22 @@ export const AddressVerification = () => {
       
     } catch (err) {
       console.error('Error en verificación:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido al verificar la dirección');
+      let errorMessage = 'Error desconocido al verificar la dirección';
+      
+      if (err instanceof Error) {
+        if (err.message.includes('Google Maps API key')) {
+          errorMessage = 'Error: Clave de API de Google Maps no configurada. Contacta al administrador.';
+        } else if (err.message.includes('Google Maps API no está disponible')) {
+          errorMessage = 'Error: Google Maps API no está disponible. Intenta recargar la página.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
       toast({
         title: "Error en verificación",
-        description: "No se pudo verificar la dirección. Intenta de nuevo.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -99,6 +111,17 @@ export const AddressVerification = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-blue-700">
+              <AlertTriangle className="h-5 w-5" />
+              <span className="font-medium">Configuración necesaria:</span>
+            </div>
+            <p className="text-blue-600 mt-1 text-sm">
+              Para usar esta función, necesitas configurar una clave de API de Google Maps. 
+              Contacta al administrador para obtener acceso.
+            </p>
+          </div>
+
           <div className="flex gap-2">
             <Input
               placeholder="Ingresa la dirección a verificar (ej: Av. Providencia 1208, Santiago, Chile)"
