@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      address_verifications: {
+        Row: {
+          address: string
+          components: Json | null
+          confidence_score: number | null
+          coordinates_lat: number | null
+          coordinates_lng: number | null
+          created_at: string
+          formatted_address: string | null
+          id: string
+          location_type: string | null
+          place_id: string | null
+          status: string
+          types: string[] | null
+          user_id: string
+        }
+        Insert: {
+          address: string
+          components?: Json | null
+          confidence_score?: number | null
+          coordinates_lat?: number | null
+          coordinates_lng?: number | null
+          created_at?: string
+          formatted_address?: string | null
+          id?: string
+          location_type?: string | null
+          place_id?: string | null
+          status: string
+          types?: string[] | null
+          user_id: string
+        }
+        Update: {
+          address?: string
+          components?: Json | null
+          confidence_score?: number | null
+          coordinates_lat?: number | null
+          coordinates_lng?: number | null
+          created_at?: string
+          formatted_address?: string | null
+          id?: string
+          location_type?: string | null
+          place_id?: string | null
+          status?: string
+          types?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_verifications: {
         Row: {
           created_at: string

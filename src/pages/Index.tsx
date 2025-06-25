@@ -3,8 +3,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhoneVerification } from "@/components/verification/PhoneVerification";
 import { EmailVerification } from "@/components/verification/EmailVerification";
 import { WebsiteVerification } from "@/components/verification/WebsiteVerification";
+import { AddressVerification } from "@/components/verification/AddressVerification";
 import { BatchVerification } from "@/components/verification/BatchVerification";
-import { Shield, Phone, Mail, Globe, Database } from "lucide-react";
+import { Shield, Phone, Mail, Globe, MapPin, Database } from "lucide-react";
 
 const Index = () => {
   return (
@@ -16,7 +17,7 @@ const Index = () => {
             <h1 className="text-4xl font-bold text-gray-900">Veracity Check</h1>
           </div>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Microservicio seguro para verificación de números de teléfono, correos electrónicos y sitios web
+            Microservicio seguro para verificación de números de teléfono, correos electrónicos, sitios web y direcciones
           </p>
           <div className="flex items-center justify-center gap-2 mt-2 text-sm text-gray-500">
             <Shield className="h-4 w-4" />
@@ -25,7 +26,7 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="phone" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="phone" className="flex items-center gap-2">
               <Phone className="h-4 w-4" />
               Teléfono
@@ -37,6 +38,10 @@ const Index = () => {
             <TabsTrigger value="website" className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
               Sitio Web
+            </TabsTrigger>
+            <TabsTrigger value="address" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Dirección
             </TabsTrigger>
             <TabsTrigger value="batch" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
@@ -54,6 +59,10 @@ const Index = () => {
 
           <TabsContent value="website">
             <WebsiteVerification />
+          </TabsContent>
+
+          <TabsContent value="address">
+            <AddressVerification />
           </TabsContent>
 
           <TabsContent value="batch">

@@ -3,9 +3,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhoneVerification } from "@/components/verification/PhoneVerification";
 import { EmailVerification } from "@/components/verification/EmailVerification";
 import { WebsiteVerification } from "@/components/verification/WebsiteVerification";
+import { AddressVerification } from "@/components/verification/AddressVerification";
 import { BatchVerification } from "@/components/verification/BatchVerification";
 import { RecentVerifications } from "./RecentVerifications";
-import { Phone, Mail, Globe, FileSpreadsheet, History } from "lucide-react";
+import { Phone, Mail, Globe, MapPin, FileSpreadsheet, History } from "lucide-react";
 
 interface DashboardTabsProps {
   recentVerifications: {
@@ -28,7 +29,7 @@ export const DashboardTabs = ({
 }: DashboardTabsProps) => {
   return (
     <Tabs defaultValue="phone" className="w-full">
-      <TabsList className="grid w-full grid-cols-5">
+      <TabsList className="grid w-full grid-cols-6">
         <TabsTrigger value="phone" className="flex items-center gap-2">
           <Phone className="h-4 w-4" />
           Teléfono
@@ -40,6 +41,10 @@ export const DashboardTabs = ({
         <TabsTrigger value="website" className="flex items-center gap-2">
           <Globe className="h-4 w-4" />
           Sitio Web
+        </TabsTrigger>
+        <TabsTrigger value="address" className="flex items-center gap-2">
+          <MapPin className="h-4 w-4" />
+          Dirección
         </TabsTrigger>
         <TabsTrigger value="batch" className="flex items-center gap-2">
           <FileSpreadsheet className="h-4 w-4" />
@@ -61,6 +66,10 @@ export const DashboardTabs = ({
       
       <TabsContent value="website" className="mt-6">
         <WebsiteVerification />
+      </TabsContent>
+      
+      <TabsContent value="address" className="mt-6">
+        <AddressVerification />
       </TabsContent>
       
       <TabsContent value="batch" className="mt-6">

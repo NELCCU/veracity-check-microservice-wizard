@@ -135,6 +135,29 @@ export interface WebsiteVerificationResult {
   timestamp: string;
 }
 
+export interface AddressVerificationResult {
+  status: 'valid' | 'invalid';
+  formattedAddress?: string;
+  confidenceScore: number;
+  locationType?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  placeId?: string;
+  components: {
+    streetNumber?: string;
+    route?: string;
+    locality?: string;
+    administrativeAreaLevel1?: string;
+    administrativeAreaLevel2?: string;
+    country?: string;
+    postalCode?: string;
+  };
+  types: string[];
+  timestamp: string;
+}
+
 export interface BatchVerificationRequest {
   phones?: string[];
   emails?: string[];
