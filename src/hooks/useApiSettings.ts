@@ -36,7 +36,6 @@ export const useApiSettings = () => {
           emailApiProvider: data.email_api_provider as 'zerobounce' | 'hunter',
           websiteApiProvider: data.website_api_provider as 'similar_web' | 'builtwith',
           dailyVerificationLimit: data.daily_verification_limit || 100,
-          // Handle the case where google_maps_api_key field might not exist yet
           googleMapsApiKey: (data as any).google_maps_api_key || ''
         });
       } else {
@@ -68,7 +67,15 @@ export const useApiSettings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      // Prepare the update object
+      console.log('💾 Guardando configuraciones para usuario:', user.id);
+
+      // Verificar si ya existe una configuración para este usuario
+      const { data: existingSettings } = await supabase
+        .from('user_settings')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
       const updateData: any = {
         user_id: user.id,
         phone_api_provider: newSettings.phoneApiProvider,
@@ -78,27 +85,51 @@ export const useApiSettings = () => {
         updated_at: new Date().toISOString()
       };
 
-      // Only add google_maps_api_key if it's provided
+      // Solo agregar google_maps_api_key si está definido
       if (newSettings.googleMapsApiKey !== undefined) {
         updateData.google_maps_api_key = newSettings.googleMapsApiKey;
       }
 
-      const { error } = await supabase
-        .from('user_settings')
-        .upsert(updateData);
+      let result;
+      if (existingSettings) {
+        // Actualizar configuración existente
+        result = await supabase
+          .from('user_settings')
+          .update(updateData)
+          .eq('user_id', user.id);
+      } else {
+        // Crear nueva configuración
+        result = await supabase
+          .from('user_settings')
+          .insert(updateData);
+      }
 
-      if (error) throw error;
+      if (result.error) {
+        console.error('Error en la base de datos:', result.error);
+        throw result.error;
+      }
 
       setSettings(newSettings);
+      console.log('✅ Configuraciones guardadas exitosamente');
       toast({
         title: "Configuración guardada",
         description: "Las configuraciones se han actualizado correctamente"
       });
     } catch (error) {
       console.error('Error saving settings:', error);
+      let errorMessage = "No se pudieron guardar las configuraciones";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate key')) {
+          errorMessage = "Error de duplicación en la base de datos. Intenta recargar la página.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "No se pudieron guardar las configuraciones",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

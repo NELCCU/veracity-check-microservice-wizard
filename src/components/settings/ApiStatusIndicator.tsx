@@ -82,92 +82,110 @@ export const ApiStatusIndicator = () => {
     try {
       console.log('🗺️ Verificando estado de Google Maps API...');
       
-      if (!settings?.googleMapsApiKey) {
+      if (!settings?.googleMapsApiKey || settings.googleMapsApiKey.trim() === '') {
         return {
           service: 'Google Maps',
           status: 'offline',
           lastCheck: new Date(),
-          message: 'API Key no configurada'
+          message: 'API Key no configurada. Ve a la sección de configuración para añadirla.'
         };
       }
 
-      // Intentar cargar Google Maps
-      await googleMapsLoader.loadGoogleMaps(settings.googleMapsApiKey);
-      
-      if (googleMapsLoader.isGoogleMapsLoaded()) {
-        // Probar una geocodificación simple para verificar que el servicio está activo
-        const geocoder = new google.maps.Geocoder();
+      // Reset del loader en caso de errores previos
+      googleMapsLoader.reset();
+
+      // Intentar cargar Google Maps con manejo de errores mejorado
+      try {
+        await googleMapsLoader.loadGoogleMaps(settings.googleMapsApiKey);
         
-        return new Promise((resolve) => {
-          geocoder.geocode({ address: 'New York, NY' }, (results, status) => {
-            if (status === google.maps.GeocoderStatus.OK) {
-              console.log('✅ Google Maps API y Geocoding API operativos');
-              resolve({
-                service: 'Google Maps',
-                status: 'online',
-                lastCheck: new Date(),
-                message: 'API y Geocoding funcionando correctamente'
-              });
-            } else if (status === google.maps.GeocoderStatus.REQUEST_DENIED) {
-              console.log('❌ Geocoding API no activado');
+        if (googleMapsLoader.isGoogleMapsLoaded()) {
+          // Probar una geocodificación simple para verificar que el servicio está activo
+          const geocoder = new google.maps.Geocoder();
+          
+          return new Promise((resolve) => {
+            const timeout = setTimeout(() => {
               resolve({
                 service: 'Google Maps',
                 status: 'offline',
                 lastCheck: new Date(),
-                message: 'Geocoding API no activado en Google Cloud Console'
+                message: 'Timeout al verificar el servicio'
               });
-            } else if (status === google.maps.GeocoderStatus.OVER_QUERY_LIMIT) {
-              console.log('⚠️ Límite de cuota excedido');
-              resolve({
-                service: 'Google Maps',
-                status: 'limited',
-                lastCheck: new Date(),
-                message: 'Cuota de geocodificación excedida'
-              });
-            } else {
-              console.log('❌ Error en Geocoding API:', status);
-              resolve({
-                service: 'Google Maps',
-                status: 'offline',
-                lastCheck: new Date(),
-                message: `Error del servicio: ${status}`
-              });
-            }
+            }, 10000); // 10 segundos de timeout
+
+            geocoder.geocode({ address: 'Madrid, España' }, (results, status) => {
+              clearTimeout(timeout);
+              
+              if (status === google.maps.GeocoderStatus.OK) {
+                console.log('✅ Google Maps API y Geocoding API operativos');
+                resolve({
+                  service: 'Google Maps',
+                  status: 'online',
+                  lastCheck: new Date(),
+                  message: 'API y Geocoding funcionando correctamente'
+                });
+              } else if (status === google.maps.GeocoderStatus.REQUEST_DENIED) {
+                console.log('❌ Geocoding API no activado o dominio no autorizado');
+                resolve({
+                  service: 'Google Maps',
+                  status: 'offline',
+                  lastCheck: new Date(),
+                  message: 'Error: Geocoding API no activado o dominio no autorizado. Ve a Google Cloud Console.'
+                });
+              } else if (status === google.maps.GeocoderStatus.OVER_QUERY_LIMIT) {
+                console.log('⚠️ Límite de cuota excedido');
+                resolve({
+                  service: 'Google Maps',
+                  status: 'limited',
+                  lastCheck: new Date(),
+                  message: 'Cuota de geocodificación excedida'
+                });
+              } else {
+                console.log('❌ Error en Geocoding API:', status);
+                resolve({
+                  service: 'Google Maps',
+                  status: 'offline',
+                  lastCheck: new Date(),
+                  message: `Error del servicio: ${status}`
+                });
+              }
+            });
           });
-        });
-      } else {
-        console.log('❌ Google Maps API no disponible');
+        } else {
+          return {
+            service: 'Google Maps',
+            status: 'offline',
+            lastCheck: new Date(),
+            message: 'Error cargando la API'
+          };
+        }
+      } catch (loadError) {
+        console.error('💥 Error cargando Google Maps:', loadError);
+        
+        let message = 'Error desconocido';
+        if (loadError instanceof Error) {
+          if (loadError.message.includes('dominio')) {
+            message = 'Dominio no autorizado. Configura el dominio en Google Cloud Console.';
+          } else if (loadError.message.includes('clave')) {
+            message = 'Clave de API inválida o sin permisos';
+          } else {
+            message = loadError.message;
+          }
+        }
+        
         return {
           service: 'Google Maps',
           status: 'offline',
           lastCheck: new Date(),
-          message: 'Error cargando la API'
+          message
         };
       }
     } catch (error) {
-      console.error('💥 Error verificando Google Maps:', error);
-      let message = 'Error desconocido';
-      
-      if (error instanceof Error) {
-        if (error.message.includes('API key')) {
-          message = 'Clave de API inválida o sin permisos';
-        } else if (error.message.includes('quota')) {
-          return {
-            service: 'Google Maps',
-            status: 'limited',
-            lastCheck: new Date(),
-            message: 'Cuota excedida'
-          };
-        } else {
-          message = error.message;
-        }
-      }
-      
+      console.error('💥 Error general verificando Google Maps:', error);
       return {
         service: 'Google Maps',
         status: 'offline',
         lastCheck: new Date(),
-        message
+        message: 'Error verificando el estado del servicio'
       };
     }
   };
@@ -227,7 +245,7 @@ export const ApiStatusIndicator = () => {
                 <div>
                   <span className="font-medium">{api.service}</span>
                   {api.message && (
-                    <p className="text-xs text-gray-500">{api.message}</p>
+                    <p className="text-xs text-gray-500 max-w-md">{api.message}</p>
                   )}
                 </div>
               </div>
@@ -242,7 +260,20 @@ export const ApiStatusIndicator = () => {
           <Alert className="mt-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Algunos servicios tienen problemas. Las verificaciones pueden verse afectadas.
+              <div className="space-y-2">
+                <p>Algunos servicios tienen problemas. Las verificaciones pueden verse afectadas.</p>
+                {apiStatuses.find(api => api.service === 'Google Maps' && api.status === 'offline') && (
+                  <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
+                    <p className="font-medium text-blue-800">Para configurar Google Maps:</p>
+                    <ol className="list-decimal list-inside text-blue-700 space-y-1 mt-1">
+                      <li>Ve a <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+                      <li>Activa la API de "Geocoding API"</li>
+                      <li>Añade este dominio a las restricciones: <code className="bg-blue-100 px-1 rounded">{window.location.hostname}</code></li>
+                      <li>Copia la clave API y pégala en la configuración</li>
+                    </ol>
+                  </div>
+                )}
+              </div>
             </AlertDescription>
           </Alert>
         )}

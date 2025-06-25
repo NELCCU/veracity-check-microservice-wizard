@@ -31,35 +31,34 @@ class GoogleMapsLoader {
         return;
       }
 
-      // Usar la clave proporcionada o intentar obtenerla de las variables de entorno
-      let googleMapsApiKey = apiKey;
-      
-      if (!googleMapsApiKey) {
-        googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-      }
-      
-      if (!googleMapsApiKey) {
-        console.error('Google Maps API key no encontrada. Configúrala en la configuración de la aplicación.');
-        reject(new Error('Google Maps API key no configurada'));
+      // Usar la clave proporcionada
+      if (!apiKey || apiKey.trim() === '') {
+        console.error('❌ Google Maps API key no proporcionada');
+        reject(new Error('Google Maps API key es requerida para verificar direcciones'));
         return;
       }
 
-      // Crear el script para cargar Google Maps
+      console.log('🗺️ Cargando Google Maps API...');
+
+      // Crear el script para cargar Google Maps con callback y async
       const script = document.createElement('script');
       script.type = 'text/javascript';
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=geometry,places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry,places&loading=async&callback=initGoogleMaps`;
       script.async = true;
       script.defer = true;
 
-      script.onload = () => {
+      // Crear función de callback global
+      (window as any).initGoogleMaps = () => {
         console.log('✅ Google Maps API cargada exitosamente');
         this.isLoaded = true;
+        delete (window as any).initGoogleMaps; // Limpiar callback
         resolve();
       };
 
       script.onerror = (error) => {
         console.error('❌ Error cargando Google Maps API:', error);
-        reject(new Error('Error cargando Google Maps API'));
+        delete (window as any).initGoogleMaps; // Limpiar callback en caso de error
+        reject(new Error('Error cargando Google Maps API. Verifica que la clave sea válida y que el dominio esté autorizado.'));
       };
 
       // Agregar el script al documento
@@ -71,6 +70,12 @@ class GoogleMapsLoader {
 
   isGoogleMapsLoaded(): boolean {
     return this.isLoaded && typeof google !== 'undefined' && !!google.maps;
+  }
+
+  // Método para reset en caso de errores
+  reset() {
+    this.isLoaded = false;
+    this.loadPromise = null;
   }
 }
 
