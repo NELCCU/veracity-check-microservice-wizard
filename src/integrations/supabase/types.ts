@@ -137,6 +137,7 @@ export type Database = {
           created_at: string
           daily_verification_limit: number | null
           email_api_provider: string | null
+          google_maps_api_key: string | null
           id: string
           phone_api_provider: string | null
           updated_at: string
@@ -147,6 +148,7 @@ export type Database = {
           created_at?: string
           daily_verification_limit?: number | null
           email_api_provider?: string | null
+          google_maps_api_key?: string | null
           id?: string
           phone_api_provider?: string | null
           updated_at?: string
@@ -157,6 +159,7 @@ export type Database = {
           created_at?: string
           daily_verification_limit?: number | null
           email_api_provider?: string | null
+          google_maps_api_key?: string | null
           id?: string
           phone_api_provider?: string | null
           updated_at?: string
